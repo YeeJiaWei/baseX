@@ -1,7 +1,9 @@
 part of 'index.dart';
 
 class XLoggerInterceptors extends Interceptor with InterceptorMixin {
-  // var _cache = <Uri, Response>{};
+  /// Buffers each request's log lines until its response/error arrives, so the
+  /// whole exchange prints as one block (one icon) keyed by request identity.
+  static final Map<int, List<String>> _pending = {};
 
   /// Request on header
   @override
@@ -35,36 +37,23 @@ class XLoggerInterceptors extends Interceptor with InterceptorMixin {
       options.headers.remove('headerType');
       options.headers.addAll(header);
     }
-    XLogger.reqHead('START REQUEST');
-    XLogger.reqBody('║');
-    XLogger.reqBody('╟ METHOD: ${options.method.toUpperCase()}');
-    XLogger.reqBody('╟ BASEURL: ${options.baseUrl}');
-    XLogger.reqBody('╟ PATH: ${options.path}');
-    XLogger.reqBody('║');
-    XLogger.reqBody('╟ ########## HEADER ##########');
-    if (options.headers.isNotEmpty) {
-      options.headers.forEach((k, v) => XLogger.reqBody('║ $k: $v'));
-    } else {
-      XLogger.reqBody('║ NO HEADER');
-    }
-    XLogger.reqBody('╟ ########## HEADER ##########');
-    XLogger.reqBody('║');
-    if (options.method.toUpperCase() == 'GET') {
-      XLogger.reqBody('╟ QUERY PARAM: ${options.queryParameters.toString()}');
-    }
-    XLogger.reqBody('║');
-    XLogger.reqBody('╟ ########## BODY ##########');
-    if (options.data != null) {
-      final Map<String, dynamic> bodyMap =
-          Map<String, dynamic>.fromEntries(options.data.fields);
-      XLogger.reqBody('║ ${bodyMap.toString()}');
-    } else {
-      XLogger.reqBody('║ NO BODY');
-    }
-    XLogger.reqBody('╟ ########## BODY ##########');
 
-    XLogger.reqBody('║ ');
-    XLogger.reqTail(' END REQUEST ');
+    // Buffer the request — it prints later as part of the response/error block.
+    final method = options.method.toUpperCase();
+    final lines = <String>['→ ${options.baseUrl}${options.path}'];
+    if (method == 'GET' && options.queryParameters.isNotEmpty) {
+      lines.add('→ query: ${options.queryParameters}');
+    }
+    if (options.data != null) {
+      try {
+        final bodyMap =
+            Map<String, dynamic>.fromEntries(options.data.fields);
+        if (bodyMap.isNotEmpty) lines.add('→ body: $bodyMap');
+      } catch (_) {
+        lines.add('→ body: ${options.data}');
+      }
+    }
+    _pending[options.hashCode] = lines;
 
     return handler.next(options);
   }
@@ -72,56 +61,49 @@ class XLoggerInterceptors extends Interceptor with InterceptorMixin {
   /// Request on error will throw custom Exception Error
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    XLogger.errorHead('START ERROR');
-    XLogger.errorBody('║');
-    XLogger.errorBody('╟ RESPONSE STATUS CODE: ${err.response?.statusCode}');
-    XLogger.errorBody(
-        '╟ SERVER STATUS MESSAGE: ${err.response?.statusMessage}');
-    if (err.response?.data.containsKey('code') &&
-        err.response?.data['code'] != 40000) {
-      XLogger.errorBody('╟ CODE: ${err.response?.data['code']}');
+    final opt = err.requestOptions;
+    final lines = _pending.remove(opt.hashCode) ?? <String>[];
+
+    lines.add('← ${err.response?.statusCode ?? err.type.name}');
+    if (err.response?.statusMessage != null) {
+      lines.add('← ${err.response?.statusMessage}');
     }
-    XLogger.errorBody('╟ RAW DATA: ${err.response?.data}');
-    // if (err.response?.data != null)
-    //   print('ERROR_KEY : ${err.response?.data['error_key']}');
-    if (err.response?.statusCode == 422) {
-      XLogger.errorBody('╟ ERROR ON STATUS CODE: 422');
-      XLogger.errorBody('║ ${err.response?.data['message']}');
+    if (err.response?.data != null) {
+      lines.add('← ${err.response?.data}');
+    } else if (err.message != null) {
+      lines.add('← ${err.message}');
     }
-    XLogger.errorBody('║');
-    XLogger.errorTail(' END ERROR ');
+
+    XLogger.httpBlock(
+      failed: true,
+      title: '${opt.method.toUpperCase()} ${opt.path}',
+      lines: lines,
+    );
+
     return handler.next(err);
   }
 
   /// Request on response
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    if (response.data.containsKey('code') && baseConstant.success200) {
-      if (response.data['code'] >= 200 && !response.data['status']) {
-        XLogger.errorHead('START ERROR');
-        XLogger.errorBody('║');
-        XLogger.errorBody('╟ RESPONSE STATUS CODE: ${response.data['code']}');
-        XLogger.errorBody(
-            '╟ SERVER STATUS MESSAGE: ${response.data['message']}');
-        XLogger.errorBody('╟ RAW DATA: ${response.data}');
-        // if (err.response?.data != null)
-        //   print('ERROR_KEY : ${err.response?.data['error_key']}');
-        if (response.data['code'] == 422) {
-          XLogger.errorBody('╟ ERROR ON STATUS CODE: 422');
-          XLogger.errorBody('║ ${response.data['message']}');
-        }
-        XLogger.errorBody('║');
-        XLogger.errorTail(' END ERROR ');
+    final opt = response.requestOptions;
+    final lines = _pending.remove(opt.hashCode) ?? <String>[];
 
-        return handler.next(response);
-      }
+    // baseX treats a 2xx envelope with status != true as a logical failure.
+    final data = response.data;
+    bool failed = false;
+    if (data is Map && data.containsKey('code') && baseConstant.success200) {
+      if (data['code'] >= 200 && data['status'] != true) failed = true;
     }
-    XLogger.resHead('START RESPONSE');
-    XLogger.resBody('║');
-    XLogger.resBody('╟ Response: ${response.data}');
-    XLogger.resBody('╟ Status Code: ${response.data['code']}');
-    XLogger.resBody('║');
-    XLogger.resTail(' END RESPONSE ');
+
+    lines.add('← ${response.statusCode}');
+    lines.add('← $data');
+
+    XLogger.httpBlock(
+      failed: failed,
+      title: '${opt.method.toUpperCase()} ${opt.path}',
+      lines: lines,
+    );
 
     return handler.next(response);
   }
