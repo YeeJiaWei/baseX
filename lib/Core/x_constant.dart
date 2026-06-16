@@ -5,6 +5,9 @@ import 'package:huawei_hmsavailability/huawei_hmsavailability.dart';
 
 enum Environment { Live, Staging }
 
+/// App build flavor, selected via --dart-define=APP_ENV=development|staging|production.
+enum Flavor { development, staging, production }
+
 enum Position { top, bottom, none }
 
 /// [BaseXConstant] is a base class constant
@@ -47,6 +50,22 @@ abstract class BaseXConstant {
 /// 3. languageCode => current language selected, by default is English, en. (if multi langauge is enable in runEtcApp)
 /// 4. onFailed => global onFailed set in runEtcApp
 class DefaultBaseConstant extends BaseXConstant {
+  /// The app's [ProviderConfig]. Override in your AppConstant to point at your
+  /// ProviderConfig subclass; defaults to an empty config.
+  ProviderConfig get providerConfig => const ProviderConfig();
+
+  /// The app's environment resolver. Override in your AppConstant to point at
+  /// your [XEnv]; runXApp reads its active environment for the title + base URLs.
+  XEnv<XEnvironment>? get env => null;
+
+  /// The service providers [runXApp] boots. Reads them from [providerConfig].
+  List<ServiceProvider> providers() => providerConfig.providers;
+
+  /// The app's initial theme. A service provider sets this during boot();
+  /// [runXApp] reads it when building the app. Null falls back to runXApp's
+  /// lightTheme/darkTheme.
+  ThemeData? theme;
+
   @override
   Color get defaultBackgroundColor => Colors.white;
 

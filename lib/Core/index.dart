@@ -2,7 +2,7 @@ library core;
 
 export 'x_base_controller.dart' show BaseXController;
 export 'x_base_widget.dart' show BaseXWidget;
-export 'x_constant.dart' show BaseXConstant, DefaultBaseConstant, Environment, Position;
+export 'x_constant.dart' show BaseXConstant, DefaultBaseConstant, Environment, Flavor, Position;
 export 'x_declaration.dart'
     show
         GeneralErrorHandle,
@@ -23,6 +23,8 @@ export 'x_extension.dart'
         DateTimeExtension,
         HexColorOnNull;
 export 'x_get_app.dart' show runXApp, baseConstant, defaultService, defaultLangController;
+export 'x_service_provider.dart' show ServiceProvider, ProviderConfig;
+export 'x_env.dart' show XEnv, XEnvironment, flavorFromEnv;
 export 'x_navigation.dart'
     show
         onGetPage,
