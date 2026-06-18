@@ -48,7 +48,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   List<DeviceOrientation> allowOrientationList = const [DeviceOrientation.portraitUp],
   DefaultBaseConstant? constantConfig,
   Function? additionalFunction,
-  AddtionalWidget? additionalWidget,
+  AdditionalWidget? additionalWidget,
   XLangController<T, K>? langController,
 }) async {
   //Check required field
@@ -139,7 +139,7 @@ class MyApp extends StatelessWidget {
   final List<GetPage<dynamic>> getPages;
   final BaseXWidget initialPage;
   final Bindings initialBinding;
-  final AddtionalWidget? additionalWidget;
+  final AdditionalWidget? additionalWidget;
   const MyApp({
     required this.title,
     required this.lightTheme,

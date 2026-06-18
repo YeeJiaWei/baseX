@@ -7,6 +7,7 @@ class ForceUpdateException extends XError {
     required super.requestOptions,
     super.errorMsg,
     super.statusCode,
+    super.response,
   });
 
   @override

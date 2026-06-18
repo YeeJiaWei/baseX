@@ -1,48 +1,14 @@
 part of 'index.dart';
 
-class ApiInterceptors extends Interceptor with InterceptorMixin {
-  // var _cache = <Uri, Response>{};
-
-  /// Request on header
-  @override
-  void onRequest(
-      RequestOptions options, RequestInterceptorHandler handler) async {
-    Map<String, String?> header = {
-      Headers.acceptHeader: Headers.jsonContentType,
-      'App-Version': baseConstant.appVersion.value,
-      'Os-Type': GetPlatform.isIOS ? 'ios' : 'android',
-      if (defaultLangController != null)
-        'Label-Version': defaultLangController?.labelVersion,
-      if (Get.locale != null) 'Accept-Language': Get.locale?.languageCode,
-      'Device-Model': baseConstant.deviceModel.value,
-      if (baseConstant.deviceId.value != '')
-        'Device-ID': baseConstant.deviceId.value,
-      if (baseConstant.osVersion.value != '')
-        'Os-Version': baseConstant.osVersion.value,
-      // 'Device-Type': Platform.isIOS ? 'ios' : 'android',
-      // 'Version-Type': baseConstant.versionType,
-      // 'API-Version': baseConstant.api_version,
-    };
-
-    header.addAll(baseConstant.additionalHeader);
-
-    if (options.headers.containsKey('headerType')) {
-      if (options.headers['headerType'] == HeaderType.authorized && X != null) {
-        options.headers.addAll(
-            {HttpHeaders.authorizationHeader: 'Bearer ${X?.accessToken}'});
-      }
-
-      options.headers.remove('headerType');
-      options.headers.addAll(header);
-    }
-    return super.onRequest(options, handler);
-  }
-
+/// Transforms transport errors into the baseX [XError] hierarchy and rejects
+/// 2xx responses that the envelope marks as logical failures.
+class ApiErrorInterceptor extends Interceptor with InterceptorMixin {
   /// Request on error will throw custom Exception Error
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     DioException customError = NoConnectionException(
       requestOptions: err.requestOptions,
+      response: err.response,
     );
 
     switch (err.type) {
@@ -51,6 +17,7 @@ class ApiInterceptors extends Interceptor with InterceptorMixin {
       case DioExceptionType.receiveTimeout:
         customError = TimeOutException(
             requestOptions: err.requestOptions,
+            response: err.response,
             errorMsg: err.response?.data['message'],
             statusCode: err.response?.statusCode);
         break;
@@ -60,6 +27,7 @@ class ApiInterceptors extends Interceptor with InterceptorMixin {
           err.response?.data['message'],
           err.requestOptions,
           code: err.response?.data['code'],
+          response: err.response,
         );
         break;
       case DioExceptionType.badCertificate:
@@ -69,19 +37,11 @@ class ApiInterceptors extends Interceptor with InterceptorMixin {
       case DioExceptionType.unknown:
         customError = NoConnectionException(
           requestOptions: err.requestOptions,
+          response: err.response,
           statusCode: XHttpType.unknown.value,
         );
         break;
     }
-
-    // if (err.type == DioException.connectTimeout || err.type == DioErrorType.other) {
-    //   Response cachedResponse = _cache[err.requestOptions.uri];
-    //   print('>>>>>1>>>>');
-    //   if (cachedResponse != null) {
-    //     print('>>>>>2>>>>');
-    //     return handler.resolve(cachedResponse);
-    //   }
-    // }
 
     return super.onError(customError, handler);
   }
@@ -101,7 +61,6 @@ class ApiInterceptors extends Interceptor with InterceptorMixin {
       }
     }
 
-    // _cache[response.requestOptions.uri] = response;
     return super.onResponse(response, handler);
   }
 }

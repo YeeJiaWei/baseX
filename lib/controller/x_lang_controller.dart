@@ -67,7 +67,7 @@ abstract class XLangController<T extends XLabel, K extends XLanguage> extends Ge
       _labelVersion ??= parsedJson['latest_label_version'] ?? '1.0.0';
 
       if (parsedJson != null) {
-        return create!(parsedJson['labels']);
+        return create!(parsedJson['labels']).cast<T>();
       }
       return [];
     } catch (e) {

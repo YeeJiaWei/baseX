@@ -9,35 +9,6 @@ class XLoggerInterceptors extends Interceptor with InterceptorMixin {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
-    Map<String, String?> header = {
-      Headers.acceptHeader: Headers.jsonContentType,
-      'App-Version': baseConstant.appVersion.value,
-      'Os-Type': GetPlatform.isIOS ? 'ios' : 'android',
-      if (defaultLangController != null)
-        'Label-Version': defaultLangController?.labelVersion,
-      if (Get.locale != null) 'Accept-Language': Get.locale?.languageCode,
-      'Device-Model': baseConstant.deviceModel.value,
-      if (baseConstant.deviceId.value != '')
-        'Device-ID': baseConstant.deviceId.value,
-      if (baseConstant.osVersion.value != '')
-        'Os-Version': baseConstant.osVersion.value,
-      // 'Device-Type': Platform.isIOS ? 'ios' : 'android',
-      // 'Version-Type': baseConstant.versionType,
-      // 'API-Version': baseConstant.api_version,
-    };
-
-    header.addAll(baseConstant.additionalHeader);
-
-    if (options.headers.containsKey('headerType')) {
-      if (options.headers['headerType'] == HeaderType.authorized && X != null) {
-        options.headers.addAll(
-            {HttpHeaders.authorizationHeader: 'Bearer ${X?.accessToken}'});
-      }
-
-      options.headers.remove('headerType');
-      options.headers.addAll(header);
-    }
-
     // Buffer the request — it prints later as part of the response/error block.
     final method = options.method.toUpperCase();
     final lines = <String>['→ ${options.baseUrl}${options.path}'];

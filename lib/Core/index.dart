@@ -6,14 +6,11 @@ export 'x_constant.dart' show BaseXConstant, DefaultBaseConstant, Environment, F
 export 'x_declaration.dart'
     show
         GeneralErrorHandle,
-        GeneralErrorHandleConfig,
-        OnFailed,
         OnFail,
-        OnGenericCallBack,
         FromJsonM,
         JSON,
         JSONLIST,
-        AddtionalWidget,
+        AdditionalWidget,
         onFailed;
 export 'x_extension.dart'
     show

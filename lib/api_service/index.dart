@@ -10,7 +10,10 @@ import 'package:dio/dio.dart';
 import 'package:baseX/base_x.dart';
 
 part 'api.dart';
+part 'api_request_mixin.dart';
 part 'response_x.dart';
+part 'device_header_interceptor.dart';
+part 'auth_interceptor.dart';
 part 'api_interceptor.dart';
 part 'api_logger_interceptor.dart';
 part 'api_service_mixin.dart';

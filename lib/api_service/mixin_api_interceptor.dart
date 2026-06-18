@@ -6,6 +6,7 @@ mixin InterceptorMixin {
     String message,
     RequestOptions requestOptions, {
     int? code,
+    Response? response,
   }) {
     XHttpType x = XHttpType.fromValue(statusCode,
         useCustom: !(baseXHttp.runtimeType == BaseXHttp));
@@ -16,12 +17,14 @@ mixin InterceptorMixin {
           return InvalidRequestException(
             errorMsg: message,
             requestOptions: requestOptions,
+            response: response,
             statusCode: code,
           );
         } else {
           return InvalidRequestException(
             errorMsg: message,
             requestOptions: requestOptions,
+            response: response,
             statusCode: statusCode,
           );
         }
@@ -29,42 +32,49 @@ mixin InterceptorMixin {
         return UnauthorizedException(
           errorMsg: message,
           requestOptions: requestOptions,
+          response: response,
           statusCode: statusCode,
         );
       case XHttpType.notFound:
         return NotFoundException(
           errorMsg: message,
           requestOptions: requestOptions,
+          response: response,
           statusCode: statusCode,
         );
       case XHttpType.validationRequest:
         return ValidationException(
           errorMsg: message,
           requestOptions: requestOptions,
+          response: response,
           statusCode: statusCode,
         );
       case XHttpType.tooManyRequest:
         return TooManyRequestException(
           errorMsg: message,
           requestOptions: requestOptions,
+          response: response,
           statusCode: statusCode,
         );
       case XHttpType.forceUpdate:
         return ForceUpdateException(
           errorMsg: message,
           requestOptions: requestOptions,
+          response: response,
           statusCode: statusCode,
         );
       case XHttpType.maintenanceMode:
         return MaintenanceException(
           errorMsg: message,
           requestOptions: requestOptions,
+          response: response,
           statusCode: statusCode,
         );
       default:
         return InternalServerErrorException(
           errorMsg: message,
           requestOptions: requestOptions,
+          response: response,
           statusCode: statusCode,
         );
     }
