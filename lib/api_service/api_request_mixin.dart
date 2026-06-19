@@ -27,14 +27,12 @@ mixin ApiRequestMixin {
   String mixPathParam(String endpoint, {String? pathParam}) =>
       '/$endpoint${pathParam.isStringNotNullEmpty ? '/$pathParam' : ''}';
 
-  /// Runs [request], deserialises the `{message, data}` envelope via [create]
-  /// and returns the parsed payload cast to [T]. Routes the outcome to the
-  /// callbacks: [onSuccess] (2xx), [onError] (4xx/5xx — with the [Response]),
-  /// [onTimeout] (no response at all), and [onComplete] (always). Returns null
-  /// on any failure.
-  Future<T?> run<T>(
+  /// Runs [request] and returns the raw [Response] (deserialise it at the call
+  /// site with `.toObject` / `.toList`). Routes the outcome to the callbacks:
+  /// [onSuccess] (2xx), [onError] (4xx/5xx — with the [Response]), [onTimeout]
+  /// (no response at all), and [onComplete] (always). Returns null on failure.
+  Future<Response?> run(
     Future<Response> Function() request, {
-    FromJsonM<T>? create,
     OnSuccess? onSuccess,
     OnError? onError,
     OnTimeout? onTimeout,
@@ -44,7 +42,7 @@ mixin ApiRequestMixin {
     try {
       response = await request();
       onSuccess?.call(response);
-      return XResponse<T>.fromJson(response.data, create: create).data as T?;
+      return response;
     } on Exception catch (e) {
       response = e is DioException ? e.response : null;
       if (response != null) {

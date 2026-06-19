@@ -49,11 +49,10 @@ class ApiXService with ApiRequestMixin {
     XLogger.info('Api initialized with (${_dio.options.baseUrl}) endpoint.');
   }
 
-  /// [get] request. [create] deserialises `data` into [T]; returns the parsed
-  /// payload or null on failure.
-  Future<T?> get<T>(
+  /// [get] request. Returns the raw [Response] (use `.toObject`/`.toList` to
+  /// deserialise), or null on failure.
+  Future<Response?> get(
     String endpoint, {
-    required FromJsonM<T> create,
     OnSuccess? onSuccess,
     OnError? onError,
     OnTimeout? onTimeout,
@@ -62,13 +61,12 @@ class ApiXService with ApiRequestMixin {
     String? pathParam,
     JSON? queryParam,
   }) {
-    return run<T>(
+    return run(
       () => _dio.get(
         mixPathParam(endpoint, pathParam: pathParam),
         queryParameters: queryParam,
         options: headerOptions(requiredToken),
       ),
-      create: create,
       onSuccess: onSuccess,
       onError: onError,
       onTimeout: onTimeout,
@@ -77,10 +75,9 @@ class ApiXService with ApiRequestMixin {
   }
 
   /// [post] request (multipart form body via [FormData]).
-  Future<T?> post<T>(
+  Future<Response?> post(
     String endpoint,
     JSON body, {
-    FromJsonM<T>? create,
     OnSuccess? onSuccess,
     OnError? onError,
     OnTimeout? onTimeout,
@@ -89,7 +86,7 @@ class ApiXService with ApiRequestMixin {
     ProgressCallback? uploadProgress,
     ProgressCallback? downloadProgress,
   }) {
-    return run<T>(
+    return run(
       () => _dio.post(
         mixPathParam(endpoint),
         data: FormData.fromMap(body),
@@ -97,7 +94,6 @@ class ApiXService with ApiRequestMixin {
         onSendProgress: uploadProgress,
         onReceiveProgress: downloadProgress,
       ),
-      create: create,
       onSuccess: onSuccess,
       onError: onError,
       onTimeout: onTimeout,
@@ -106,23 +102,21 @@ class ApiXService with ApiRequestMixin {
   }
 
   /// [put] request.
-  Future<T?> put<T>(
+  Future<Response?> put(
     String endpoint,
     JSON? body, {
-    FromJsonM<T>? create,
     OnSuccess? onSuccess,
     OnError? onError,
     OnTimeout? onTimeout,
     OnComplete? onComplete,
     bool requiredToken = true,
   }) {
-    return run<T>(
+    return run(
       () => _dio.put(
         mixPathParam(endpoint),
         data: body,
         options: headerOptions(requiredToken),
       ),
-      create: create,
       onSuccess: onSuccess,
       onError: onError,
       onTimeout: onTimeout,
@@ -131,10 +125,9 @@ class ApiXService with ApiRequestMixin {
   }
 
   /// [delete] request.
-  Future<T?> delete<T>(
+  Future<Response?> delete(
     String endpoint,
     String pathParam, {
-    FromJsonM<T>? create,
     OnSuccess? onSuccess,
     OnError? onError,
     OnTimeout? onTimeout,
@@ -142,13 +135,12 @@ class ApiXService with ApiRequestMixin {
     bool requiredToken = true,
     JSON? queryParam,
   }) {
-    return run<T>(
+    return run(
       () => _dio.delete(
         mixPathParam(endpoint, pathParam: pathParam),
         queryParameters: queryParam,
         options: headerOptions(requiredToken),
       ),
-      create: create,
       onSuccess: onSuccess,
       onError: onError,
       onTimeout: onTimeout,
