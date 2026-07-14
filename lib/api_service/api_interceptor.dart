@@ -15,6 +15,7 @@ class ApiErrorInterceptor extends Interceptor with InterceptorMixin {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
+      case DioExceptionType.transformTimeout:
         customError = TimeOutException(
             requestOptions: err.requestOptions,
             response: err.response,
