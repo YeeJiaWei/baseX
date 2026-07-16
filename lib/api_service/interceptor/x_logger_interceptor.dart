@@ -1,4 +1,10 @@
-part of 'index.dart';
+import 'package:dio/dio.dart';
+
+import 'package:baseX/Core/index.dart';
+
+import 'package:baseX/api_service/support/interceptor_mixin.dart';
+
+import 'package:baseX/api_service/client/api_x_service.dart';
 
 class XLoggerInterceptors extends Interceptor with InterceptorMixin {
   /// Buffers each request's log lines until its response/error arrives, so the
@@ -35,10 +41,10 @@ class XLoggerInterceptors extends Interceptor with InterceptorMixin {
     final opt = err.requestOptions;
     final lines = _pending.remove(opt.hashCode) ?? <String>[];
 
-    lines.add('← ${err.response?.statusCode ?? err.type.name}');
-    if (err.response?.statusMessage != null) {
-      lines.add('← ${err.response?.statusMessage}');
-    }
+    final status = err.response != null
+        ? '${err.response?.statusCode} ${err.response?.statusMessage ?? ''}'
+            .trim()
+        : err.type.name;
     if (err.response?.data != null) {
       lines.add('← ${err.response?.data}');
     } else if (err.message != null) {
@@ -47,7 +53,7 @@ class XLoggerInterceptors extends Interceptor with InterceptorMixin {
 
     XLogger.httpBlock(
       failed: true,
-      title: '${opt.method.toUpperCase()} ${opt.path}',
+      title: '${opt.method.toUpperCase()} ${opt.path} → $status',
       lines: lines,
     );
 
@@ -67,15 +73,22 @@ class XLoggerInterceptors extends Interceptor with InterceptorMixin {
       if (data['code'] >= 200 && data['status'] != true) failed = true;
     }
 
-    lines.add('← ${response.statusCode}');
     lines.add('← $data');
 
     XLogger.httpBlock(
       failed: failed,
-      title: '${opt.method.toUpperCase()} ${opt.path}',
+      title: '${opt.method.toUpperCase()} ${opt.path} → ${response.statusCode}',
       lines: lines,
     );
 
     return handler.next(response);
   }
+}
+
+/// Trait: appends [XLoggerInterceptors] to the connection's stack. Declare it
+/// last so every earlier trait's headers/mutations show up in the logs.
+mixin XLoggerApiMixin on ApiXService {
+  @override
+  List<Interceptor> get interceptors =>
+      [...super.interceptors, XLoggerInterceptors()];
 }

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
 
 enum LogType { error, warning, success, response }
@@ -65,9 +67,10 @@ class XLogger {
   static void errorBody(String text) => _mid('1;31', text);
   static void errorTail(String mid) => _close('1;31');
 
-  /// Prints a whole HTTP exchange as one bordered block with a single outcome
-  /// icon at the top — 🟢 success / 🔴 failed. [lines] are already cleaned
-  /// (request lines prefixed `→`, response lines `←`).
+  /// Prints a whole HTTP exchange as one block — outcome icon + [title]
+  /// summary on the header line, then a rounded border wrapping the detail
+  /// [lines] (request lines prefixed `→`, response lines `←`; multi-line
+  /// entries are split so every row carries the border).
   static void httpBlock({
     required bool failed,
     required String title,
@@ -75,11 +78,18 @@ class XLogger {
   }) {
     final emoji = failed ? '🔴' : '🟢';
     final color = failed ? '1;31' : '1;32';
-    debugPrint('$emoji ${_c(color, '┌──── $title ────')}');
+    final block = StringBuffer('$emoji ${_c(color, title)}\n');
+    block.writeln('  ${_c(color, '╭──────────────────────────────')}');
     for (final line in lines) {
-      debugPrint('   ${_c(color, '│')} $line');
+      for (final row in line.split('\n')) {
+        block.writeln('  ${_c(color, '│')} $row');
+      }
     }
-    debugPrint('   ${_c(color, '└──────────────────────')}');
+    block.write('  ${_c(color, '╰──────────────────────────────')}');
+    // Single developer.log keeps the block contiguous and skips the tool's
+    // `flutter:` stdout prefix (same channel GetX logs on). debugPrint would
+    // throttle and let other sources interleave mid-block.
+    developer.log(block.toString(), name: 'API');
   }
 
   /// Opens a block with the single outcome icon, e.g.
