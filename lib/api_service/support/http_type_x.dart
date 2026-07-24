@@ -1,5 +1,3 @@
-part of 'index.dart';
-
 class DefaultBaseXHttp extends BaseXHttp {}
 
 /// [BaseXHttp] is abstract class to let external to be override
@@ -33,43 +31,43 @@ enum XHttpType {
   final int value;
   const XHttpType(this.value);
 
-  factory XHttpType.fromValue(int? value, {bool useCustom = false}) =>
-      values.firstWhere((x) => x.codeX(useCustom) == value, orElse: () => unknown);
+  /// Match a status code against [http]'s (per-connection) mapping. A plain
+  /// [DefaultBaseXHttp] (or null) uses the enum's built-in values.
+  factory XHttpType.fromValue(int? value, {BaseXHttp? http}) =>
+      values.firstWhere((x) => x.codeX(http) == value, orElse: () => unknown);
 
   int defaultCodeX() {
     return value;
   }
 
-  int customCodeX() {
+  int customCodeX(BaseXHttp http) {
     switch (this) {
       case XHttpType.forceUpdate:
-        return baseXHttp.forceUpdate;
+        return http.forceUpdate;
       case XHttpType.internalserver:
-        return baseXHttp.internalserver;
+        return http.internalserver;
       case XHttpType.invalidRequest:
-        return baseXHttp.invalidRequest;
+        return http.invalidRequest;
       case XHttpType.maintenanceMode:
-        return baseXHttp.maintenanceMode;
+        return http.maintenanceMode;
       case XHttpType.notFound:
-        return baseXHttp.notFound;
+        return http.notFound;
       case XHttpType.tooManyRequest:
-        return baseXHttp.tooManyRequest;
+        return http.tooManyRequest;
       case XHttpType.unauthorized:
-        return baseXHttp.unauthorized;
+        return http.unauthorized;
       case XHttpType.validationRequest:
-        return baseXHttp.validationRequest;
+        return http.validationRequest;
       case XHttpType.versionOutdate:
-        return baseXHttp.versionOutdate;
+        return http.versionOutdate;
       case XHttpType.unknown:
-        return baseXHttp.unknown;
-      default:
-        return XHttpType.unknown.value;
+        return http.unknown;
     }
   }
 
-  int codeX(bool useCustom) {
-    if (useCustom) {
-      return customCodeX();
+  int codeX(BaseXHttp? http) {
+    if (http != null && http.runtimeType != DefaultBaseXHttp) {
+      return customCodeX(http);
     } else {
       return defaultCodeX();
     }

@@ -19,8 +19,8 @@ export 'x_extension.dart'
         Unique,
         DateTimeExtension,
         HexColorOnNull;
-export 'x_get_app.dart' show runXApp, baseConstant, defaultService, defaultLangController;
-export 'x_service_provider.dart' show ServiceProvider, ProviderConfig;
+export 'x_get_app.dart' show runXApp, baseConstant, defaultLangController;
+export 'x_service_provider.dart' show ServiceProvider, ProviderConfig, ApiXServiceProvider;
 export 'x_env.dart' show XEnv, XEnvironment, flavorFromEnv;
 export 'x_navigation.dart'
     show

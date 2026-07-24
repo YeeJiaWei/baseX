@@ -1,4 +1,4 @@
-part of 'index.dart';
+import 'package:dio/dio.dart';
 
 /// Builds a [T] from a decoded JSON map — the per-call deserialiser passed to
 /// [XResponseX.toObject] / [XResponseX.toList]. A model's `fromJson` tear-off

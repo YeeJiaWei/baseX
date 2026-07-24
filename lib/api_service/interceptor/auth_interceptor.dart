@@ -1,4 +1,10 @@
-part of 'index.dart';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
+
+import 'package:baseX/Core/index.dart';
+
+import 'package:baseX/api_service/client/api_x_service.dart';
 
 /// Adds the Bearer token when the request opted into auth via
 /// `Options(extra: {'requiredToken': true})`. The flag lives in [RequestOptions.extra],
@@ -11,4 +17,11 @@ class AuthInterceptor extends Interceptor {
     }
     handler.next(options);
   }
+}
+
+/// Trait: appends [AuthInterceptor] to the connection's stack.
+mixin AuthApiMixin on ApiXService {
+  @override
+  List<Interceptor> get interceptors =>
+      [...super.interceptors, AuthInterceptor()];
 }

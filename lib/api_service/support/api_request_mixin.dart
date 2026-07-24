@@ -1,4 +1,6 @@
-part of 'index.dart';
+import 'package:dio/dio.dart';
+
+import 'package:baseX/Core/index.dart';
 
 /// Fired on a 2xx response. Always receives the [Response].
 typedef OnSuccess = void Function(Response response);

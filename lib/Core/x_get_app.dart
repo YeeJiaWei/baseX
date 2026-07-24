@@ -1,5 +1,4 @@
 import 'package:baseX/base_x.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,7 +6,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:gms_check/gms_check.dart';
 
 late DefaultBaseConstant baseConstant;
-late ApiXService defaultService;
 XLangController? defaultLangController;
 
 /// [runXApp] runXApp<XLabel, XLanguage>
@@ -23,7 +21,11 @@ XLangController? defaultLangController;
 /// * [additionalFunction] => Add additional function before runEtcApp
 /// * [additionalWidget] => Add additional widget before material app
 /// * [required200] => Set api whether always receive http code 200
-/// * [timeOutDurationInSecond] => Set api timeoutDuration to this field in seconds
+///
+/// API connections are declared via an [ApiXServiceProvider] in the provider
+/// list (each [ApiXService] subclass owns its endpoint/timeout/interceptors);
+/// runXApp itself does no API wiring. Without a provider, touching
+/// [defaultService] throws a StateError naming the missing registration.
 Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   // required bool requireSharePref,
   required VoidCallback sharedPref,
@@ -37,14 +39,12 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   String? liveBaseUrl,
   String? staginBaseUrl,
   Environment? currentEnv,
-  BaseXHttp? customHttp,
   ThemeMode? themeMode,
   // Theme: usually a provider sets baseConstant.theme in boot(); these are an
   // optional fallback for apps without a theme provider.
   ThemeData? lightTheme,
   ThemeData? darkTheme,
   bool required200 = false,
-  Duration timeOutDurationInSecond = timeoutDuration,
   List<DeviceOrientation> allowOrientationList = const [DeviceOrientation.portraitUp],
   DefaultBaseConstant? constantConfig,
   Function? additionalFunction,
@@ -96,6 +96,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
     provider.boot();
   }
 
+
   if (langController != null) {
     defaultLangController = Get.put<XLangController<T, K>>(langController);
   }
@@ -107,10 +108,6 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   if (additionalFunction != null) {
     additionalFunction();
   }
-  Dio _dio = Dio();
-
-  defaultService =
-      ApiXService.init(_dio, timeOutDurationInSecond, customHttp: customHttp ?? DefaultBaseXHttp());
 
   // Theme applied by a provider during boot() (baseConstant.theme), else the
   // explicit light/darkTheme fallback.

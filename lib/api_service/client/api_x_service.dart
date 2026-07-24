@@ -1,50 +1,45 @@
-part of 'index.dart';
+import 'package:dio/dio.dart';
+
+import 'package:baseX/Core/index.dart';
+
+import 'package:baseX/api_service/support/api_request_mixin.dart';
+import 'package:baseX/api_service/support/http_type_x.dart';
 
 enum HttpMethod { get, post, put, delete }
-
-late BaseXHttp baseXHttp;
 
 const String multipartHeader = 'multipart/form-data';
 const Duration timeoutDuration = Duration(seconds: 60);
 
-/// Dio-bound transport. Each verb is build-request → [run], which deserialises
-/// the envelope, returns the parsed payload, and routes the outcome to the
-/// `onSuccess` / `onError` / `onTimeout` / `onComplete` callbacks.
-class ApiXService with ApiRequestMixin {
-  late Dio _dio;
+/// Dio-bound transport; one subclass = one connection. Override the config
+/// getters and compose [interceptors] from trait mixins. See
+/// doc/API_SERVICE.md.
+abstract class ApiXService with ApiRequestMixin {
+  late final Dio _dio;
 
-  void _setBaseXHttp(BaseXHttp customHttp) {
-    baseXHttp = customHttp;
-  }
+  /// Base URL — application policy, so every connection states it explicitly.
+  String get endpoint;
+
+  /// Connect timeout.
+  Duration get timeout => timeoutDuration;
+
+  /// Status-code mapping for error handling.
+  BaseXHttp get http => DefaultBaseXHttp();
+
+  /// Interceptor stack. The base contributes nothing; each trait mixin
+  /// appends its own via `[...super.interceptors, TheInterceptor()]`, so
+  /// `with`-clause order = stack order.
+  List<Interceptor> get interceptors => const [];
 
   String? get getEndpoint {
     return _dio.options.baseUrl;
   }
 
-  ApiXService.init(
-    Dio dio,
-    Duration timeout, {
-    BaseXHttp? customHttp,
-    String? customEndpoint,
-  }) : _dio = dio {
-    _dio.options.connectTimeout = timeout;
-
-    if (customEndpoint != null) {
-      _dio.options.baseUrl = customEndpoint;
-    } else {
-      _dio.options.baseUrl = kDebugMode ? baseConstant.uatBaseUrl : baseConstant.baseUrl;
-    }
-
-    _dio.interceptors.addAll([
-      DeviceHeaderInterceptor(),
-      AuthInterceptor(),
-      ApiErrorInterceptor(),
-      XLoggerInterceptors(),
-    ]);
-
-    if (customHttp != null) {
-      _setBaseXHttp(customHttp);
-    }
+  /// Config getters are read once here — keep overrides constant.
+  ApiXService() {
+    _dio = Dio()
+      ..options.connectTimeout = timeout
+      ..options.baseUrl = endpoint
+      ..interceptors.addAll(interceptors);
 
     XLogger.info('Api initialized with (${_dio.options.baseUrl}) endpoint.');
   }
@@ -149,4 +144,9 @@ class ApiXService with ApiRequestMixin {
   }
 
   void setNewEndpoint(String endpoint) => _dio.options.baseUrl = endpoint;
+
+  /// Close the underlying client. Prefer [ApiXConnections.dispose], which
+  /// also evicts the alias so it can rebuild.
+  void dispose({bool force = false}) => _dio.close(force: force);
 }
+

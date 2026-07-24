@@ -1,15 +1,20 @@
-part of 'index.dart';
+import 'package:dio/dio.dart';
 
+import 'package:baseX/custom_error/index.dart';
+
+import 'package:baseX/api_service/support/http_type_x.dart';
+
+/// Maps a status code + envelope error body to a typed [DioException].
 mixin InterceptorMixin {
   DioException onErrorProcess(
     int? statusCode,
     String message,
-    RequestOptions requestOptions, {
+    RequestOptions requestOptions,
+    BaseXHttp http, {
     int? code,
     Response? response,
   }) {
-    XHttpType x = XHttpType.fromValue(statusCode,
-        useCustom: !(baseXHttp.runtimeType == BaseXHttp));
+    XHttpType x = XHttpType.fromValue(statusCode, http: http);
 
     switch (x) {
       case XHttpType.invalidRequest:

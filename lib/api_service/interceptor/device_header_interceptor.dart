@@ -1,4 +1,9 @@
-part of 'index.dart';
+import 'package:dio/dio.dart';
+import 'package:get/get.dart' hide Response, FormData, MultipartFile;
+
+import 'package:baseX/Core/index.dart';
+
+import 'package:baseX/api_service/client/api_x_service.dart';
 
 /// Injects app/device metadata headers on every request.
 class DeviceHeaderInterceptor extends Interceptor {
@@ -20,4 +25,11 @@ class DeviceHeaderInterceptor extends Interceptor {
     options.headers.addAll(baseConstant.additionalHeader);
     handler.next(options);
   }
+}
+
+/// Trait: appends [DeviceHeaderInterceptor] to the connection's stack.
+mixin DeviceHeaderApiMixin on ApiXService {
+  @override
+  List<Interceptor> get interceptors =>
+      [...super.interceptors, DeviceHeaderInterceptor()];
 }

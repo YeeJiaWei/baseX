@@ -1,8 +1,19 @@
-part of 'index.dart';
+import 'package:dio/dio.dart';
 
-/// Transforms transport errors into the baseX [XError] hierarchy and rejects
-/// 2xx responses that the envelope marks as logical failures.
+import 'package:baseX/Core/index.dart';
+import 'package:baseX/custom_error/index.dart';
+
+import 'package:baseX/api_service/client/api_x_service.dart';
+import 'package:baseX/api_service/support/http_type_x.dart';
+import 'package:baseX/api_service/support/interceptor_mixin.dart';
+
+/// Transforms transport errors into the baseX [XError] hierarchy, mapping
+/// status codes with its connection's [BaseXHttp] (no shared global).
 class ApiErrorInterceptor extends Interceptor with InterceptorMixin {
+  final BaseXHttp http;
+
+  ApiErrorInterceptor(this.http);
+
   /// Request on error will throw custom Exception Error
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -27,6 +38,7 @@ class ApiErrorInterceptor extends Interceptor with InterceptorMixin {
           err.response?.statusCode,
           err.response?.data['message'],
           err.requestOptions,
+          http,
           code: err.response?.data['code'],
           response: err.response,
         );
@@ -57,6 +69,7 @@ class ApiErrorInterceptor extends Interceptor with InterceptorMixin {
             response.data['code'],
             response.data['message'],
             response.requestOptions,
+            http,
           ),
         );
       }
@@ -64,4 +77,12 @@ class ApiErrorInterceptor extends Interceptor with InterceptorMixin {
 
     return super.onResponse(response, handler);
   }
+}
+
+/// Trait: appends [ApiErrorInterceptor] (wired to the connection's
+/// [ApiXService.http] mapping) to the stack.
+mixin ApiErrorApiMixin on ApiXService {
+  @override
+  List<Interceptor> get interceptors =>
+      [...super.interceptors, ApiErrorInterceptor(http)];
 }

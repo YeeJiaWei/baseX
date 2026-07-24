@@ -1,3 +1,5 @@
+import 'package:baseX/base_x.dart';
+
 /// Laravel-style service provider.
 ///
 /// A provider groups the bootstrap logic for one concern (theme, analytics,
@@ -14,6 +16,24 @@ abstract class ServiceProvider {
 
   /// Run side effects after all providers have registered.
   void boot() {}
+}
+
+/// Declares the app's API connections into [ApiXConnections] — the default
+/// from [buildDefault] plus any aliases from [connections], all registered as
+/// lazy factories. Required in the provider list: nothing else registers
+/// connections. See doc/API_SERVICE.md.
+abstract class ApiXServiceProvider extends ServiceProvider {
+  /// Build the app's default connection ([defaultService]).
+  ApiXService buildDefault();
+
+  /// Extra named connections (alias → factory).
+  Map<String, ApiXService Function()> get connections => const {};
+
+  @override
+  void register() {
+    ApiXConnections.register(ApiXConnections.defaultAlias, buildDefault);
+    connections.forEach(ApiXConnections.register);
+  }
 }
 
 /// Holds the app's [ServiceProvider] list — the equivalent of Laravel's
