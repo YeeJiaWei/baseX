@@ -1,18 +1,14 @@
-library api_service;
-
-import 'dart:async';
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
-
-import 'package:dio/dio.dart';
-
-import 'package:baseX/base_x.dart';
-
-part 'api.dart';
-part 'response_x.dart';
-part 'api_interceptor.dart';
-part 'api_logger_interceptor.dart';
-part 'api_service_mixin.dart';
-part 'http_type_x.dart';
-part 'mixin_api_interceptor.dart';
+export 'api_connections.dart';
+export 'api_service_mixin.dart';
+export 'client/api_x_service.dart';
+export 'client/default_api_x_service.dart';
+export 'client/standard_api_x_service.dart';
+export 'interceptor/api_error_interceptor.dart';
+export 'interceptor/auth_interceptor.dart';
+export 'interceptor/device_header_interceptor.dart';
+export 'interceptor/x_logger_interceptor.dart';
+export 'interceptor/x_user_sync_interceptor.dart';
+export 'support/api_request_mixin.dart';
+export 'support/http_type_x.dart';
+export 'support/interceptor_mixin.dart';
+export 'support/response_x.dart';

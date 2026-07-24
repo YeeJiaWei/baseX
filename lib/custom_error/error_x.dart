@@ -8,6 +8,7 @@ abstract class XError extends DioException {
 
   XError({
     required super.requestOptions,
+    super.response,
     this.errorMsg,
     this.statusCode,
   });

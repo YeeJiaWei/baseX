@@ -1,24 +1,13 @@
-part of 'index.dart';
+import 'package:baseX/api_service/client/api_x_service.dart';
 
-/// implements [ApiServiceMixin] and make your service class as singleton
-/// with singleton example method below
+/// Contract for API service classes. Both members are abstract on purpose —
+/// a service must state its transport; there is no implicit default. Define
+/// one project-level base per connection (`defaultServ => defaultService` or
+/// `ApiXConnections.of(alias)`) and extend it. See doc/API_SERVICE.md.
 mixin ApiServiceMixin {
-  late ApiXService defaultServ;
-  late String apiPath;
+  /// The transport this service's calls go through.
+  ApiXService get defaultServ;
 
-  // static final AuthServiceImpl service = AuthServiceImpl._();
-
-  // AuthServiceImpl._() {
-  //   print('AuthService had created!');
-  // }
-
-  // factory AuthServiceImpl({ApiXService? apiXService}) {
-  //   if (apiXService == null) {
-  //     service.defaultServ = defaultService;
-  //   } else {
-  //     service.defaultServ = apiXService;
-  //   }
-
-  //   return service;
-  // }
+  /// Base endpoint for the service.
+  String get apiPath;
 }
