@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/foundation.dart';
 
 enum LogType { error, warning, success, response }
@@ -9,9 +7,13 @@ enum LogType { error, warning, success, response }
 /// The previous implementation used ANSI colour escapes and box-drawing
 /// banners. Consoles that don't interpret ANSI (iOS simulator Run window,
 /// VS Code Debug Console) render those escapes as literal `^[[38;5;..m` noise,
-/// so this version leans on emoji markers + indentation for visual structure,
+/// so this version leans on text markers + indentation for visual structure,
 /// which render in every console. Set [ansiColor] to true when viewing logs in
 /// a real terminal (`flutter run`) to additionally get true ANSI colours.
+///
+/// Everything here goes out via [debugPrint] so the output reaches every
+/// console, including Windows terminals that don't surface the VM service
+/// logging stream `dart:developer` writes to.
 class XLogger {
   /// Enable true ANSI colours. Leave false for consoles that show raw escape
   /// codes; set true only in a terminal that renders ANSI.
@@ -67,29 +69,38 @@ class XLogger {
   static void errorBody(String text) => _mid('1;31', text);
   static void errorTail(String mid) => _close('1;31');
 
-  /// Prints a whole HTTP exchange as one block — outcome icon + [title]
-  /// summary on the header line, then a rounded border wrapping the detail
-  /// [lines] (request lines prefixed `→`, response lines `←`; multi-line
-  /// entries are split so every row carries the border).
+  /// Border drawn around an HTTP block. Plain ASCII rather than box-drawing
+  /// characters: Windows consoles (cmd.exe / PowerShell at the default
+  /// codepage) render `╭│╰` and emoji as mojibake.
+  static const String _blockEdge = '+------------------------------';
+  static const String _blockSide = '|';
+
+  /// Prints a whole HTTP exchange as one block — outcome marker + [title]
+  /// summary on the header line, then a border wrapping the detail [lines]
+  /// (request lines prefixed `→`, response lines `←`; multi-line entries are
+  /// split so every row carries the border).
   static void httpBlock({
     required bool failed,
     required String title,
     required List<String> lines,
   }) {
-    final emoji = failed ? '🔴' : '🟢';
+    final marker = failed ? '[API ERR]' : '[API OK]';
     final color = failed ? '1;31' : '1;32';
-    final block = StringBuffer('$emoji ${_c(color, title)}\n');
-    block.writeln('  ${_c(color, '╭──────────────────────────────')}');
+
+    // debugPrint, not developer.log. dart:developer writes to the VM service
+    // logging stream, which IDE debug consoles surface but Windows terminals
+    // and Android Studio's Run window do not — these blocks were the only logs
+    // missing there, because every other method here already uses debugPrint.
+    // One call per row so a long response body wraps instead of being lost to
+    // debugPrint's per-call length throttle.
+    debugPrint('$marker ${_c(color, title)}');
+    debugPrint('  ${_c(color, _blockEdge)}');
     for (final line in lines) {
       for (final row in line.split('\n')) {
-        block.writeln('  ${_c(color, '│')} $row');
+        debugPrint('  ${_c(color, _blockSide)} $row');
       }
     }
-    block.write('  ${_c(color, '╰──────────────────────────────')}');
-    // Single developer.log keeps the block contiguous and skips the tool's
-    // `flutter:` stdout prefix (same channel GetX logs on). debugPrint would
-    // throttle and let other sources interleave mid-block.
-    developer.log(block.toString(), name: 'API');
+    debugPrint('  ${_c(color, _blockEdge)}');
   }
 
   /// Opens a block with the single outcome icon, e.g.
