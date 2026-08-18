@@ -84,7 +84,9 @@ abstract class ApiXService with ApiRequestMixin {
     return run(
       () => _dio.post(
         mixPathParam(endpoint),
-        data: FormData.fromMap(body),
+        // multiCompatible bracket-suffixes list keys (genders[]=...) so
+        // repeated keys aren't last-wins on last-wins-on-repeat backends.
+        data: FormData.fromMap(body, ListFormat.multiCompatible),
         options: headerOptions(requiredToken),
         onSendProgress: uploadProgress,
         onReceiveProgress: downloadProgress,

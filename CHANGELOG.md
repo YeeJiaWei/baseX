@@ -1,5 +1,14 @@
 # Change Log
 
+## [v0.6.1](https://github.com/haolun1996/baseX/releases/tag/0.6.1) - 2026-08-17
+- Bug Fixes
+    - use `ListFormat.multiCompatible` for [FormData.fromMap](https://github.com/haolun1996/baseX/blob/main/lib/api_service/client/api_x_service.dart#L89) in `post()` so list values are bracket-suffixed (`key[]=a&key[]=b`) instead of bare repeated keys, which last-wins backends were dropping down to a single value
+
+<br />
+
+***
+<br />
+
 ## [v0.6.0](https://github.com/haolun1996/baseX/releases/tag/0.6.0) - 2026-04-14
 - New
     - Added [additionalHeader](https://github.com/haolun1996/baseX/blob/1ac4902a5cf1042135d097be19f7efd7582d6097/lib/api_service/api_interceptor.dart#L27)
