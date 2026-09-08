@@ -26,7 +26,12 @@ baseX ships one trait per built-in — `DeviceHeaderApiMixin`, `AuthApiMixin`,
 `ApiErrorApiMixin`, `XLoggerApiMixin`, `UserSyncApiMixin` — plus
 **`StandardApiXService`**, the pre-composed standard stack (device headers →
 auth → error mapping → logging). An ordinary app connection extends it and
-adds only its own traits:
+adds only its own traits (the bearer token `AuthApiMixin` attaches comes from
+the bound `XAuthStore` — see [AUTH.md](AUTH.md)):
+
+Tests can script the transport with
+`service.httpClientAdapter = <HttpClientAdapter>` (`@visibleForTesting`), which
+swaps the client under the real interceptor stack.
 
 ```dart
 class MyAppApiService extends StandardApiXService with UserSyncApiMixin {

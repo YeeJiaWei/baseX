@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:baseX/Core/index.dart';
 
@@ -146,6 +147,12 @@ abstract class ApiXService with ApiRequestMixin {
   }
 
   void setNewEndpoint(String endpoint) => _dio.options.baseUrl = endpoint;
+
+  /// Swaps the transport under the interceptor stack so tests can script
+  /// responses without a network.
+  @visibleForTesting
+  set httpClientAdapter(HttpClientAdapter adapter) =>
+      _dio.httpClientAdapter = adapter;
 
   /// Close the underlying client. Prefer [ApiXConnections.dispose], which
   /// also evicts the alias so it can rebuild.
