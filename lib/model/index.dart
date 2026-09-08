@@ -3,7 +3,7 @@ library model;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import 'package:baseX/Core/x_declaration.dart';
+import 'package:baseX/Core/app/x_declaration.dart';
 
 part 'data_x.dart';
 part 'social_data.dart';

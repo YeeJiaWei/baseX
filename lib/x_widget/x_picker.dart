@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 
-import 'package:baseX/Core/x_declaration.dart';
+import 'package:baseX/Core/app/x_declaration.dart';
 import 'package:baseX/helper/index.dart';
 import 'package:baseX/model/index.dart';
 

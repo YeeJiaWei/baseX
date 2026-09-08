@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:baseX/Core/x_base_controller.dart';
-import 'package:baseX/Core/x_base_widget.dart';
+import 'package:baseX/Core/base/x_base_controller.dart';
+import 'package:baseX/Core/base/x_base_widget.dart';
 import 'package:get/get.dart';
 
 GetPage onGetPage<T extends BaseXWidget>(

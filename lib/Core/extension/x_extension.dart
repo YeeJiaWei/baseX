@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:baseX/Core/x_get_app.dart';
+import 'package:baseX/Core/app/x_get_app.dart';
 import 'package:intl/intl.dart';
 
 extension TextUtilsStringExtension on String? {

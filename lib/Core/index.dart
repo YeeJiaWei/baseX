@@ -1,9 +1,9 @@
 library core;
 
-export 'x_base_controller.dart' show BaseXController;
-export 'x_base_widget.dart' show BaseXWidget;
-export 'x_constant.dart' show BaseXConstant, DefaultBaseConstant, Environment, Flavor, Position;
-export 'x_declaration.dart'
+export 'base/x_base_controller.dart' show BaseXController;
+export 'base/x_base_widget.dart' show BaseXWidget;
+export 'app/x_constant.dart' show BaseXConstant, DefaultBaseConstant, Environment, Flavor, Position;
+export 'app/x_declaration.dart'
     show
         GeneralErrorHandle,
         OnFail,
@@ -12,17 +12,17 @@ export 'x_declaration.dart'
         JSONLIST,
         AdditionalWidget,
         onFailed;
-export 'x_extension.dart'
+export 'extension/x_extension.dart'
     show
         TextUtilsStringExtension,
         GeneralUtilsObjectExtension,
         Unique,
         DateTimeExtension,
         HexColorOnNull;
-export 'x_get_app.dart' show runXApp, baseConstant, defaultLangController;
-export 'x_service_provider.dart' show ServiceProvider, ProviderConfig, ApiXServiceProvider;
-export 'x_env.dart' show XEnv, XEnvironment, flavorFromEnv;
-export 'x_navigation.dart'
+export 'app/x_get_app.dart' show runXApp, baseConstant, defaultLangController;
+export 'app/x_service_provider.dart' show ServiceProvider, ProviderConfig, ApiXServiceProvider;
+export 'app/x_env.dart' show XEnv, XEnvironment, flavorFromEnv;
+export 'navigation/x_navigation.dart'
     show
         onGetPage,
         cGetPageInitial,
@@ -32,5 +32,5 @@ export 'x_navigation.dart'
         loadPageWithRemoveAllPrevious,
         backTo,
         getController;
-export 'x_logger.dart' show XLogger;
-export 'x_share_pref.dart' show BaseXSharePref, X;
+export 'logger/x_logger.dart' show XLogger;
+export 'storage/x_share_pref.dart' show BaseXSharePref, X;
