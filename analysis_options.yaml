@@ -1,1 +1,10 @@
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 include: ./lib/x_lint/x_lint.yaml
