@@ -21,11 +21,22 @@ XLangController? defaultLangController;
 /// * [additionalFunction] => Add additional function before runEtcApp
 /// * [additionalWidget] => Add additional widget before material app
 /// * [required200] => Set api whether always receive http code 200
+/// * [onFreshInstall] => Runs once on a fresh (re)install, after providers
+///   have booted (GetX, `defaultService`, theme available) and before
+///   `runApp`. Shares the same memoised [XInstallMarker] as
+///   `XAuthStore.bind`'s driver hook, so both agree on whether the install
+///   is fresh regardless of which one runs first. Failures are caught and
+///   logged, never block boot. See doc/FRESH_INSTALL.md.
 ///
 /// API connections are declared via an [ApiXServiceProvider] in the provider
 /// list (each [ApiXService] subclass owns its endpoint/timeout/interceptors);
 /// runXApp itself does no API wiring. Without a provider, touching
 /// [defaultService] throws a StateError naming the missing registration.
+///
+/// Auth: `await XAuthStore.bind(SecureAuthDriver())` in `main` before calling
+/// runXApp (and before the first authed request) — bind is async while
+/// [sharedPref] is invoked synchronously, so it cannot be done here. See
+/// doc/AUTH.md.
 Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   // required bool requireSharePref,
   required VoidCallback sharedPref,
@@ -50,6 +61,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   Function? additionalFunction,
   AdditionalWidget? additionalWidget,
   XLangController<T, K>? langController,
+  Future<void> Function()? onFreshInstall,
 }) async {
   //Check required field
   // assert(!(appLanguage != null && !requireSharePref),
@@ -100,6 +112,22 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   if (langController != null) {
     defaultLangController = Get.put<XLangController<T, K>>(langController);
   }
+
+  // Fresh-install hook — after providers boot, so GetX/services/theme are
+  // available. Shares the process-wide marker with XAuthStore.bind, whichever
+  // runs first decides "fresh" for both. A handler failure is caught and
+  // logged, never crashes boot; the marker is still set either way so an app
+  // with no auth store and no handler gets it written too.
+  if (onFreshInstall != null) {
+    try {
+      if (await XInstallMarker.instance.isFreshInstall) {
+        await onFreshInstall();
+      }
+    } catch (e) {
+      XLogger.error('onFreshInstall failed: $e');
+    }
+  }
+  await XInstallMarker.instance.markSeen();
 
   //Set Gloabal onFailed
   baseConstant.onFailed = onFailed;

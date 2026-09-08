@@ -8,8 +8,10 @@ abstract class BaseXSharePref {
   static const String tokenKey = 'AccessToken';
   static const String languageCodeKey = 'LanguageCode';
 
+  @Deprecated('Bind an XAuthStore; the token no longer lives in shared preferences')
   set accessToken(String? value);
 
+  @Deprecated('Bind an XAuthStore; the token no longer lives in shared preferences')
   String get accessToken;
 
   set languageCode(Locale? value);

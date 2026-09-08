@@ -34,3 +34,7 @@ export 'navigation/x_navigation.dart'
         getController;
 export 'logger/x_logger.dart' show XLogger;
 export 'storage/x_share_pref.dart' show BaseXSharePref, X;
+export 'storage/x_install_marker.dart' show XInstallMarker;
+export 'auth/x_auth_store.dart' show XAuthStore;
+export 'auth/drivers/secure_auth_driver.dart' show SecureAuthDriver;
+export 'auth/drivers/in_memory_auth_driver.dart' show InMemoryAuthDriver;
