@@ -72,7 +72,7 @@ class NotificationLinks {
 
   // Cold-start hold (see below)
   void hold();
-  void holdLink(Uri uri);   // queue one link without a global hold (used by guards)
+  void holdLink(LinkMatch link);   // queue one link, keeping its source and data, without a global hold (used by guards)
   Future<void> release();
   void discard();
 }
@@ -309,12 +309,15 @@ class SignedInGuard extends LinkGuard {
     if (XAuthStore.instance.hasToken) return GuardResult.allow();
 
     // Keep the link; the app calls NotificationLinks.instance.release() after sign-in.
-    NotificationLinks.instance.holdLink(link.uri);
+    NotificationLinks.instance.holdLink(link);
     await Get.offAllNamed(AppRoutes.login);
     return GuardResult.stop();
   }
 }
 ```
+
+A link queued with `holdLink` stays queued until `release()` or `discard()`;
+it replays with its original `source` and `data`.
 
 ### Feature guard — upgrade prompt instead of a dead page
 

@@ -63,12 +63,14 @@ way.
 | `type` | yes | `UPPER_SNAKE` event type, e.g. `ORDER_SHIPPED` | event routes, `lastMessageType` |
 | `link` | yes for tappable notifications | `<scheme>://<path>`, e.g. `shop://orders/1042` | path routes (fallback when no event route matches) |
 | `notification_id` | when an inbox row exists | inbox row id | mark the row read on open |
-| `delivery_id` | when delivery is tracked | unique per device send | `PushHandler.messageKey` (dedup), `onReceipt` |
+| `delivery_id` | when delivery is tracked | unique per device send | dedup and `onReceipt`, once the app overrides `PushHandler.messageKey` to return `data['delivery_id']` |
 | `<entity>_id` | per type | flat scalar ids, `snake_case`, e.g. `order_id` | event routes (`require`) |
 
 The key names `link` and `delivery_id` are defaults. An existing backend that
 already sends other names maps them on the client (`NotificationLinkConfig.linkKey`,
-`PushHandler.messageKey`) instead of renaming server fields.
+`PushHandler.messageKey`) instead of renaming server fields. `messageKey`
+defaults to `message.id`; an app whose backend sends `delivery_id` overrides it
+to return `data['delivery_id']`.
 
 ### Rules
 

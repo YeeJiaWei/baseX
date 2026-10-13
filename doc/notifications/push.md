@@ -81,8 +81,9 @@ class PushNotifications extends GetxService {
   /// Re-sends the current token with the live permission.
   Future<void> refreshRegistration();
 
-  /// Removes the current token from the backend. XAuthStore.signOut() calls
-  /// this first, while the bearer token is still valid.
+  /// Removes the current token from the backend, giving up after 5 seconds so
+  /// a stalled request cannot hold sign-out. XAuthStore.signOut() calls this
+  /// first, while the bearer token is still valid.
   Future<void> unregisterCurrentToken();
 }
 ```
@@ -127,7 +128,7 @@ It belongs to the FCM driver because its signature is Firebase's.
 
 | Event | PushNotifications does | Handler hook |
 |---|---|---|
-| `bind()` | read permission, iOS foreground presentation, wire listeners, then fetch the token | — |
+| `bind()` | read permission, iOS foreground presentation, wire listeners; the token fetch runs in the background so boot never waits on it (iOS can wait ~10s for the APNS token) | — |
 | token ready | persist token | `registerToken` |
 | token refresh | persist new token | `registerToken(new)`, then `unregisterToken(previous)` |
 | app resume | re-read permission; if changed, `refreshRegistration()` | `registerToken` |
