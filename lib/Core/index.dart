@@ -38,3 +38,16 @@ export 'storage/x_install_marker.dart' show XInstallMarker;
 export 'auth/x_auth_store.dart' show XAuthStore;
 export 'auth/drivers/secure_auth_driver.dart' show SecureAuthDriver;
 export 'auth/drivers/in_memory_auth_driver.dart' show InMemoryAuthDriver;
+export 'notification_links/notification_links.dart' show NotificationLinks;
+export 'notification_links/notification_link_config.dart'
+    show NotificationLinkConfig;
+export 'notification_links/link_handler.dart' show LinkHandler;
+export 'notification_links/link_route.dart' show LinkRoute;
+export 'notification_links/event_handler.dart' show EventHandler;
+export 'notification_links/event_route.dart' show EventRoute;
+export 'notification_links/link_guard.dart' show LinkGuard;
+export 'notification_links/guard_result.dart' show GuardResult;
+export 'notification_links/guard_decision.dart' show GuardDecision;
+export 'notification_links/link_match.dart' show LinkMatch;
+export 'notification_links/link_param.dart' show LinkParam;
+export 'notification_links/link_source.dart' show LinkSource;
