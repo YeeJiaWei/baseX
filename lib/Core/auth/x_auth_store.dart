@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:baseX/Core/logger/x_logger.dart';
+import 'package:baseX/Core/push/push_notifications.dart';
 import 'package:baseX/Core/storage/x_install_marker.dart';
 
 /// Framework contract for where the API bearer token lives, plus the token
@@ -95,10 +98,12 @@ abstract class XAuthStore {
     final previousToken = cachedToken;
     await setToken(token);
     await onSignedIn(meta, previousToken: previousToken);
+    unawaited(PushNotifications.maybeInstance?.refreshRegistration());
   }
 
-  /// Best-effort [remote] revoke call, then clears the token and runs [onSignedOut].
+  /// Best-effort push unregister and [remote] revoke call, then clears the token and runs [onSignedOut].
   Future<void> signOut({Future<void> Function()? remote}) async {
+    if (hasToken) await PushNotifications.maybeInstance?.unregisterCurrentToken();
     if (remote != null && hasToken) {
       try {
         await remote();

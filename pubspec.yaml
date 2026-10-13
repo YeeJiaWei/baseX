@@ -33,6 +33,9 @@ dependencies:
   google_sign_in: ^7.2.0
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.3.0
+  firebase_core: ^4.0.0
+  # 16.4.x needs a newer firebase_core_platform_interface than firebase_core 4.x allows
+  firebase_messaging: '>=16.0.0 <16.4.0'
 
 dev_dependencies:
   flutter_lints: ^6.0.0
