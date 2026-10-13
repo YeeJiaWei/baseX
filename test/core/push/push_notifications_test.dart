@@ -1,0 +1,198 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:baseX/Core/index.dart';
+
+import 'fake_push_driver.dart';
+import 'fake_push_handler.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late FakePushDriver driver;
+  late FakePushHandler handler;
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    driver = FakePushDriver();
+    handler = FakePushHandler();
+  });
+
+  tearDown(PushNotifications.reset);
+
+  Future<PushNotifications> bind() =>
+      PushNotifications.bind(driver: driver, handler: handler);
+
+  Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+  test('bind does not prompt and registers the fetched token', () async {
+    final push = await bind();
+
+    expect(driver.requestCount, 0);
+    expect(push.token, 'token-1');
+    expect(handler.registered, ['token-1']);
+    expect(PushNotifications.maybeInstance, same(push));
+  });
+
+  test('bind survives a missing token', () async {
+    driver.token = null;
+
+    final push = await bind();
+
+    expect(push.token, isNull);
+    expect(handler.registered, isEmpty);
+  });
+
+  test('promptIfNeeded prompts once and sets the flag after it resolves',
+      () async {
+    final push = await bind();
+
+    final first = await push.promptIfNeeded();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(first, PushPermission.authorized);
+    expect(driver.requestCount, 1);
+    expect(prefs.getBool(PushNotifications.promptShownKey), isTrue);
+    expect(handler.registeredPermissions.last, PushPermission.authorized);
+
+    driver.permission = PushPermission.denied;
+    await push.promptIfNeeded();
+
+    expect(driver.requestCount, 1);
+  });
+
+  test('promptIfNeeded leaves the flag unset when the prompt fails', () async {
+    final push = await PushNotifications.bind(
+        driver: _ThrowingDriver(), handler: handler);
+
+    await push.promptIfNeeded();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(prefs.getBool(PushNotifications.promptShownKey), isNull);
+  });
+
+  test('promptIfNeeded skips the prompt when already authorized', () async {
+    driver.permission = PushPermission.authorized;
+    final push = await bind();
+
+    await push.promptIfNeeded();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(driver.requestCount, 0);
+    expect(prefs.getBool(PushNotifications.promptShownKey), isTrue);
+  });
+
+  test('token refresh registers the new token then unregisters the previous',
+      () async {
+    await bind();
+
+    driver.tokenController.add('token-2');
+    await settle();
+
+    expect(handler.registered, ['token-1', 'token-2']);
+    expect(handler.unregistered, ['token-1']);
+  });
+
+  test('a repeat of the same token does not unregister', () async {
+    await bind();
+
+    driver.tokenController.add('token-1');
+    await settle();
+
+    expect(handler.unregistered, isEmpty);
+  });
+
+  test('dedup drops a repeat tap with the same key', () async {
+    driver.initialMessage = const PushMessage(id: 'm1', type: 'chat');
+    await bind();
+
+    driver.openedController.add(const PushMessage(id: 'm1', type: 'chat'));
+    await settle();
+
+    expect(handler.opened, hasLength(1));
+    expect(handler.receipts, [PushReceipt.opened]);
+  });
+
+  test('a different key is handled', () async {
+    driver.initialMessage = const PushMessage(id: 'm1');
+    await bind();
+
+    driver.openedController.add(const PushMessage(id: 'm2'));
+    await settle();
+
+    expect(handler.opened, hasLength(2));
+  });
+
+  test('foreground message reports received and calls onForeground', () async {
+    await bind();
+
+    driver.foregroundController.add(const PushMessage(id: 'f1', type: 'chat'));
+    await settle();
+
+    expect(handler.receipts, [PushReceipt.received]);
+    expect(handler.foreground, hasLength(1));
+  });
+
+  test('lastMessageType fires again on a repeated type', () async {
+    final push = await bind();
+    final seen = <String?>[];
+    push.lastMessageType.listen(seen.add);
+
+    driver.foregroundController.add(const PushMessage(id: 'a', type: 'chat'));
+    await settle();
+    driver.foregroundController.add(const PushMessage(id: 'b', type: 'chat'));
+    await settle();
+
+    expect(seen, [null, 'chat', null, 'chat']);
+  });
+
+  test('resume with a changed permission re-registers', () async {
+    final push = await bind();
+    expect(handler.registered, hasLength(1));
+
+    driver.permission = PushPermission.authorized;
+    await push.onResumed();
+
+    expect(push.isAuthorized, isTrue);
+    expect(handler.registered, hasLength(2));
+    expect(handler.registeredPermissions.last, PushPermission.authorized);
+  });
+
+  test('resume with an unchanged permission does nothing', () async {
+    final push = await bind();
+
+    await push.onResumed();
+
+    expect(handler.registered, hasLength(1));
+  });
+
+  test('registration failure does not throw', () async {
+    handler.failRegistration = true;
+
+    final push = await bind();
+
+    await expectLater(push.refreshRegistration(), completes);
+  });
+
+  test('sign-out unregisters the token before it is cleared', () async {
+    await bind();
+    final store = InMemoryAuthDriver();
+    await XAuthStore.bind(store);
+    await store.signIn('bearer');
+    var unregisteredBeforeClear = false;
+
+    await store.signOut(remote: () async {
+      unregisteredBeforeClear =
+          handler.unregistered.contains('token-1') && store.hasToken;
+    });
+
+    expect(unregisteredBeforeClear, isTrue);
+    expect(store.hasToken, isFalse);
+    XAuthStore.reset();
+  });
+}
+
+class _ThrowingDriver extends FakePushDriver {
+  @override
+  Future<PushPermission> requestPermission() async => throw StateError('boom');
+}
