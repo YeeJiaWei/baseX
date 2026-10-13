@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:baseX/Core/index.dart';
 
 /// Recording [PushHandler] for assertions.
@@ -9,6 +11,7 @@ class FakePushHandler extends PushHandler {
   final opened = <PushMessage>[];
   final receipts = <PushReceipt>[];
   bool failRegistration = false;
+  bool hangUnregister = false;
 
   @override
   Future<void> registerToken(
@@ -19,7 +22,10 @@ class FakePushHandler extends PushHandler {
   }
 
   @override
-  Future<void> unregisterToken(String token) async => unregistered.add(token);
+  Future<void> unregisterToken(String token) async {
+    if (hangUnregister) return Completer<void>().future;
+    unregistered.add(token);
+  }
 
   @override
   void onForeground(PushMessage message) => foreground.add(message);

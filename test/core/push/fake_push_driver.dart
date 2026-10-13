@@ -9,13 +9,19 @@ class FakePushDriver implements PushDriver {
   String? token = 'token-1';
   PushMessage? initialMessage;
   int requestCount = 0;
+  Completer<String?>? tokenCompleter;
+  bool throwOnPermission = false;
+  bool throwOnPresentation = false;
 
   final tokenController = StreamController<String>.broadcast();
   final foregroundController = StreamController<PushMessage>.broadcast();
   final openedController = StreamController<PushMessage>.broadcast();
 
   @override
-  Future<PushPermission> getPermission() async => permission;
+  Future<PushPermission> getPermission() async {
+    if (throwOnPermission) throw StateError('permission boom');
+    return permission;
+  }
 
   @override
   Future<PushPermission> requestPermission() async {
@@ -24,10 +30,12 @@ class FakePushDriver implements PushDriver {
   }
 
   @override
-  Future<void> setForegroundPresentation() async {}
+  Future<void> setForegroundPresentation() async {
+    if (throwOnPresentation) throw StateError('presentation boom');
+  }
 
   @override
-  Future<String?> getToken() async => token;
+  Future<String?> getToken() async => tokenCompleter?.future ?? token;
 
   @override
   Future<void> deleteToken() async {}

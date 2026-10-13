@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,10 +22,14 @@ void main() {
 
   tearDown(PushNotifications.reset);
 
-  Future<PushNotifications> bind() =>
-      PushNotifications.bind(driver: driver, handler: handler);
-
   Future<void> settle() => Future<void>.delayed(Duration.zero);
+
+  Future<PushNotifications> bind() async {
+    final push = await PushNotifications.bind(driver: driver, handler: handler);
+    await settle();
+    await settle();
+    return push;
+  }
 
   test('bind does not prompt and registers the fetched token', () async {
     final push = await bind();
@@ -32,6 +38,83 @@ void main() {
     expect(push.token, 'token-1');
     expect(handler.registered, ['token-1']);
     expect(PushNotifications.maybeInstance, same(push));
+  });
+
+  test('bind returns without waiting for a slow token, then registers it',
+      () async {
+    driver.tokenCompleter = Completer<String?>();
+
+    final push =
+        await PushNotifications.bind(driver: driver, handler: handler);
+
+    expect(push.token, isNull);
+    expect(handler.registered, isEmpty);
+
+    driver.tokenCompleter!.complete('late-token');
+    await settle();
+    await settle();
+
+    expect(push.token, 'late-token');
+    expect(handler.registered, ['late-token']);
+  });
+
+  test('a throwing permission read still wires listeners and fetches token',
+      () async {
+    driver.throwOnPermission = true;
+    await bind();
+
+    driver.foregroundController.add(const PushMessage(id: 'f1'));
+    await settle();
+
+    expect(handler.foreground, hasLength(1));
+    expect(handler.registered, ['token-1']);
+  });
+
+  test('a throwing foreground presentation still wires listeners', () async {
+    driver.throwOnPresentation = true;
+    await bind();
+
+    driver.foregroundController.add(const PushMessage(id: 'f1'));
+    await settle();
+
+    expect(handler.foreground, hasLength(1));
+    expect(handler.registered, ['token-1']);
+  });
+
+  test('signIn triggers refreshRegistration', () async {
+    await bind();
+    final store = InMemoryAuthDriver();
+    await XAuthStore.bind(store);
+    handler.registered.clear();
+
+    await store.signIn('bearer');
+    await settle();
+
+    expect(handler.registered, ['token-1']);
+    XAuthStore.reset();
+  });
+
+  testWidgets('sign-out completes when unregisterToken never completes',
+      (tester) async {
+    final store = InMemoryAuthDriver();
+    await tester.runAsync(() async {
+      await bind();
+      await XAuthStore.bind(store);
+      await store.signIn('bearer');
+    });
+    handler.hangUnregister = true;
+
+    var signedOut = false;
+    unawaited(store.signOut().then((_) => signedOut = true));
+    await tester.pump();
+    expect(signedOut, isFalse);
+
+    await tester.pump(PushNotifications.unregisterTimeout);
+    await tester.pump();
+
+    expect(signedOut, isTrue);
+    expect(store.hasToken, isFalse);
+    XAuthStore.reset();
   });
 
   test('bind survives a missing token', () async {
