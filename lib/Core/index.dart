@@ -46,3 +46,16 @@ export 'push/push_platform.dart' show PushPlatform;
 export 'push/push_receipt.dart' show PushReceipt;
 export 'push/push_permission.dart' show PushPermission;
 export 'push/drivers/fcm_push_driver.dart' show FcmPushDriver;
+export 'notification_links/notification_links.dart' show NotificationLinks;
+export 'notification_links/notification_link_config.dart'
+    show NotificationLinkConfig;
+export 'notification_links/link_handler.dart' show LinkHandler;
+export 'notification_links/link_route.dart' show LinkRoute;
+export 'notification_links/event_handler.dart' show EventHandler;
+export 'notification_links/event_route.dart' show EventRoute;
+export 'notification_links/link_guard.dart' show LinkGuard;
+export 'notification_links/guard_result.dart' show GuardResult;
+export 'notification_links/guard_decision.dart' show GuardDecision;
+export 'notification_links/link_match.dart' show LinkMatch;
+export 'notification_links/link_param.dart' show LinkParam;
+export 'notification_links/link_source.dart' show LinkSource;
