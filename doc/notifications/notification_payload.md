@@ -1,8 +1,5 @@
 # Notification Payload — JSON structure
 
-> **Status: proposed.** Nothing below is implemented yet. This is the design to
-> review before the build starts.
-
 The JSON the backend sends so `PushNotifications` and `NotificationLinks` can
 show, track and route a notification. The same fields go into the push
 message and into the inbox row, so a push tap and an inbox tap route the same

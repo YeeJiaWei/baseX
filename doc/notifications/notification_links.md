@@ -1,8 +1,5 @@
 # Notification Links — `NotificationLinks`
 
-> **Status: proposed.** Nothing below is implemented yet. This is the design to
-> review before the build starts.
-
 One router for the links that notifications carry: push taps and in-app inbox
 rows. The app declares routes as path patterns instead of hand-parsing
 `uri.pathSegments`, and puts any non-trivial logic in handler classes.

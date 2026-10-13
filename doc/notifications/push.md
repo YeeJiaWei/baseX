@@ -1,8 +1,5 @@
 # Push — `PushNotifications`
 
-> **Status: proposed.** Nothing below is implemented yet. This is the design to
-> review before the build starts.
-
 Push plumbing every baseX app repeats — permission, token lifecycle, foreground /
 background / tap listeners, cold-start handling, dedup — lives in baseX. The app
 supplies only what is domain-specific through a `PushHandler`.
