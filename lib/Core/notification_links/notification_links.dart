@@ -60,7 +60,8 @@ class NotificationLinks {
       }
     }
 
-    entries.sort((a, b) => a.pattern.compareSpecificity(b.pattern));
+    entries.sort((first, second) =>
+        first.pattern.compareSpecificity(second.pattern));
     return entries;
   }
 
@@ -89,9 +90,9 @@ class NotificationLinks {
   /// Queues incoming links instead of running them, until [release] or [discard].
   void hold() => _held = true;
 
-  /// Queues one link without a global hold; [release] runs it.
-  void holdLink(Uri uri, {LinkSource source = LinkSource.inbox}) {
-    _pending = () => _handleUri(uri, source, const {});
+  /// Queues [link] with its source and data without a global hold; it stays queued until [release] or [discard].
+  void holdLink(LinkMatch link) {
+    _pending = () => _handleUri(link.uri, link.source, link.data);
   }
 
   /// Ends the hold and runs the queued link, if any.
@@ -111,7 +112,7 @@ class NotificationLinks {
   Future<bool> _handleLink(String? link, LinkSource source) async {
     final uri = link == null ? null : Uri.tryParse(link.trim());
     if (uri == null) {
-      config.onUnknown(Uri());
+      _reportUnknown(Uri());
       return false;
     }
     return _handleUri(uri, source, const {});
@@ -124,7 +125,7 @@ class NotificationLinks {
   ) async {
     try {
       if (uri.scheme != config.scheme) {
-        config.onUnknown(uri);
+        _reportUnknown(uri);
         return false;
       }
 
@@ -150,12 +151,28 @@ class NotificationLinks {
         if (handled) return true;
       }
 
-      config.onUnknown(uri);
+      _reportUnknown(uri);
       return false;
     } catch (error, stackTrace) {
-      config.onError(uri, error, stackTrace);
+      _reportError(uri, error, stackTrace);
       return false;
     }
+  }
+
+  /// Calls onUnknown; a throw goes to onError instead of escaping.
+  void _reportUnknown(Uri uri) {
+    try {
+      config.onUnknown(uri);
+    } catch (error, stackTrace) {
+      _reportError(uri, error, stackTrace);
+    }
+  }
+
+  /// Calls onError; a throw from it is swallowed so the router never rethrows.
+  void _reportError(Uri uri, Object error, StackTrace stackTrace) {
+    try {
+      config.onError(uri, error, stackTrace);
+    } catch (_) {}
   }
 
   Future<bool> _handleEvent(
@@ -189,22 +206,22 @@ class NotificationLinks {
         if (handled) return true;
       }
     } catch (error, stackTrace) {
-      config.onError(uri, error, stackTrace);
+      _reportError(uri, error, stackTrace);
       return false;
     }
 
-    if (linkValue is String && linkValue.isNotEmpty) {
+    if (linkValue is String && linkValue.trim().isNotEmpty) {
       final linkUri = Uri.tryParse(linkValue.trim());
       if (linkUri != null) return _handleUri(linkUri, source, data);
     }
 
-    config.onUnknown(uri);
+    _reportUnknown(uri);
     return false;
   }
 
   Uri _eventUri(String type, Object? linkValue) {
-    final fromLink =
-        linkValue is String ? Uri.tryParse(linkValue.trim()) : null;
+    final trimmedLink = linkValue is String ? linkValue.trim() : '';
+    final fromLink = trimmedLink.isEmpty ? null : Uri.tryParse(trimmedLink);
     return fromLink ??
         Uri(scheme: config.scheme, host: 'event', pathSegments: [type]);
   }

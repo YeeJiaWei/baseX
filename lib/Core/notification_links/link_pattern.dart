@@ -86,7 +86,7 @@ class LinkPattern {
         numeric: true,
       );
     }
-    final allowed = constraint.split('|').where((v) => v.isNotEmpty).toSet();
+    final allowed = constraint.split('|').where((value) => value.isNotEmpty).toSet();
     if (allowed.isEmpty) {
       throw FormatException('Pattern "$source": empty list in "$part"');
     }
