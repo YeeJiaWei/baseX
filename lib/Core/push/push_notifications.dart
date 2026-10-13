@@ -19,6 +19,7 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
 
   static const String tokenKey = 'push_token';
   static const String promptShownKey = 'push_prompt_shown';
+  static const Duration unregisterTimeout = Duration(seconds: 5);
 
   static PushNotifications? _instance;
 
@@ -75,12 +76,14 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
   final Rxn<String> lastMessageType = Rxn<String>();
 
   Future<void> _start() async {
-    WidgetsBinding.instance.addObserver(this);
+    await _guard('observe lifecycle', () async {
+      WidgetsBinding.instance.addObserver(this);
+    });
     await _guard('read permission', _readPermission);
     await _guard('foreground presentation', _driver.setForegroundPresentation);
     await _guard('wire listeners', () async => _wireListeners());
     await _guard('initial message', _handleInitialMessage);
-    await _guard('fetch token', _fetchInitialToken);
+    unawaited(_guard('fetch token', _fetchInitialToken));
   }
 
   @override
@@ -143,12 +146,17 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
     }
   }
 
-  /// Removes the current token from the backend; failures are logged, not thrown.
+  /// Removes the current token from the backend within [unregisterTimeout]; failures are logged, not thrown.
   Future<void> unregisterCurrentToken() async {
     try {
       final currentToken = _token ?? await _loadStoredToken();
       if (currentToken == null) return;
-      await _handler.unregisterToken(currentToken);
+      await _handler
+          .unregisterToken(currentToken)
+          .timeout(unregisterTimeout);
+    } on TimeoutException {
+      XLogger.error('push unregister timed out after $unregisterTimeout',
+          className: 'PushNotifications');
     } catch (error) {
       XLogger.error('push unregister failed: $error',
           className: 'PushNotifications');
@@ -172,11 +180,18 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
 
   void _wireListeners() {
     _subscriptions
-      ..add(_driver.onForeground.listen(_handleForeground))
-      ..add(_driver.onOpened.listen(_handleOpened))
+      ..add(_driver.onForeground
+          .listen(_handleForeground, onError: _logStreamError('foreground')))
+      ..add(_driver.onOpened
+          .listen(_handleOpened, onError: _logStreamError('opened')))
       ..add(_driver.onTokenRefresh.listen(
-          (newToken) => _guard('token refresh', () => _applyToken(newToken))));
+          (newToken) => _guard('token refresh', () => _applyToken(newToken)),
+          onError: _logStreamError('token refresh')));
   }
+
+  void Function(Object, StackTrace) _logStreamError(String stream) =>
+      (error, stackTrace) => XLogger.error('push $stream stream failed: $error',
+          className: 'PushNotifications');
 
   Future<void> _handleInitialMessage() async {
     final message = await _driver.getInitialMessage();
