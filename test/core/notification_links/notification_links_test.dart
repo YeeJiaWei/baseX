@@ -20,9 +20,13 @@ class _TestConfig extends NotificationLinkConfig {
 
   final unknown = <Uri>[];
   final errors = <Object>[];
+  bool throwOnUnknown = false;
 
   @override
-  void onUnknown(Uri uri) => unknown.add(uri);
+  void onUnknown(Uri uri) {
+    unknown.add(uri);
+    if (throwOnUnknown) throw StateError('unknown boom');
+  }
 
   @override
   void onError(Uri uri, Object error, StackTrace stackTrace) =>
@@ -306,6 +310,28 @@ void main() {
   });
 
   group('events', () {
+    test('a throwing onUnknown goes to onError and returns false', () async {
+      final config = _TestConfig(routes: const [])..throwOnUnknown = true;
+      final links = bindRoutes(config);
+
+      expect(await links.handleEvent('NOPE', {}), isFalse);
+      expect(await links.handle('shop://missing'), isFalse);
+      expect(config.errors, hasLength(2));
+      expect(config.errors.first, isA<StateError>());
+    });
+
+    test('an empty link falls back to the event uri', () async {
+      final received = <LinkMatch>[];
+      final links = bindRoutes(_TestConfig(
+        routes: const [],
+        events: [_OrderEvent(received)],
+      ));
+
+      await links.handleEvent('ORDER_SHIPPED', {'order_id': '1', 'link': '  '});
+
+      expect(received.single.uri, Uri.parse('shop://event/ORDER_SHIPPED'));
+    });
+
     test('require passes string ints and carries data', () async {
       final received = <LinkMatch>[];
       final links = bindRoutes(_TestConfig(
@@ -441,12 +467,29 @@ void main() {
     test('holdLink queues one link without a global hold', () async {
       final links = bindRoutes(_TestConfig(routes: [record('a'), record('b')]));
 
-      links.holdLink(Uri.parse('shop://a'));
+      links.holdLink(LinkMatch(uri: Uri.parse('shop://a'), source: LinkSource.push));
       expect(await links.handle('shop://b'), isTrue);
       expect(calls, ['b ']);
 
       await links.release();
       expect(calls, ['b ', 'a ']);
+    });
+
+    test('holdLink replays with the original source and data', () async {
+      final received = <LinkMatch>[];
+      final links = bindRoutes(_TestConfig(routes: [
+        LinkRoute('a', (link) async => received.add(link)),
+      ]));
+
+      links.holdLink(LinkMatch(
+        uri: Uri.parse('shop://a'),
+        source: LinkSource.push,
+        data: const {'order_id': '7'},
+      ));
+      await links.release();
+
+      expect(received.single.source, LinkSource.push);
+      expect(received.single.data, {'order_id': '7'});
     });
 
     test('release with nothing queued does nothing', () async {
