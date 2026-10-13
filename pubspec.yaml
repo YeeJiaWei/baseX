@@ -1,13 +1,13 @@
 name: baseX
-description: BaseX Running With Flutter >=3.38.7
+description: Flutter app foundation — Dio API service, auth token store, navigation, storage, error handling and shared widgets.
 
 publish_to: "none"
 
-version: 0.7.0
+version: 1.0.0
 
 environment:
-  sdk: '>=3.6.0 <4.0.0'
-  flutter: ">=3.38.7"
+  sdk: '^3.13.0'
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:

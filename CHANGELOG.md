@@ -1,5 +1,20 @@
 # Change Log
 
+## [v1.0.0](https://github.com/YeeJiaWei/baseX/releases/tag/1.0.0) - 2026-10-13
+- Breaking
+    - Minimum SDK raised to Dart `^3.13.0` / Flutter `>=3.47.0`
+    - `Core` regrouped into feature folders (`app`, `auth`, `base`, `extension`, `logger`, `navigation`, `storage`)
+- New
+    - `XAuthStore` token store with drivers, install marker and lifecycle hooks (see `doc/AUTH.md`, `doc/FRESH_INSTALL.md`)
+    - Claude Code plugin (`claude-plugin/`): `basex-api-service` and `basex-auth` skills plus a baseX detection hook
+- Bug Fixes
+    - Error interceptor always completes the handler
+
+<br />
+
+***
+<br />
+
 ## [v0.6.1](https://github.com/haolun1996/baseX/releases/tag/0.6.1) - 2026-08-17
 - Bug Fixes
     - use `ListFormat.multiCompatible` for [FormData.fromMap](https://github.com/haolun1996/baseX/blob/main/lib/api_service/client/api_x_service.dart#L89) in `post()` so list values are bracket-suffixed (`key[]=a&key[]=b`) instead of bare repeated keys, which last-wins backends were dropping down to a single value
