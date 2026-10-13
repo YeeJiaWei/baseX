@@ -7,7 +7,7 @@ import 'package:baseX/Core/notification_links/link_pattern.dart';
 LinkPattern pattern(String source) => LinkPattern.parse(source);
 
 List<String> path(String text) =>
-    text.split('/').where((p) => p.isNotEmpty).toList();
+    text.split('/').where((part) => part.isNotEmpty).toList();
 
 void main() {
   group('parsing', () {
@@ -88,9 +88,9 @@ void main() {
         pattern('x/{a}'),
         pattern('x/{a:int}'),
         pattern('x/one'),
-      ]..sort((a, b) => a.compareSpecificity(b));
+      ]..sort((first, second) => first.compareSpecificity(second));
 
-      expect(ranked.map((p) => p.source), [
+      expect(ranked.map((pattern) => pattern.source), [
         'x/one',
         'x/{a:int}',
         'x/{a}',
