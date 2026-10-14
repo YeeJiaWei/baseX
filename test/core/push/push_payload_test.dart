@@ -81,4 +81,36 @@ void main() {
     expect(payload.type, isNull);
     expect(payload.link, isNull);
   });
+
+  test('never throws on non-string keys and normalizes keys to text', () {
+    final payload = PushPayload.fromData({
+      'payload': <Object?, Object?>{
+        'type': 'A',
+        1: 'ignored',
+        'params': <Object?, Object?>{2: 'two'},
+      },
+    });
+
+    expect(payload.type, 'A');
+    expect(payload.params, {'2': 'two'});
+  });
+
+  test('deep-normalizes nested maps and lists in params', () {
+    final payload = PushPayload.fromData({
+      'payload': <Object?, Object?>{
+        'params': <Object?, Object?>{
+          'order': <Object?, Object?>{'id': 1},
+          'items': <Object?>[
+            <Object?, Object?>{'sku': 'a'},
+          ],
+        },
+      },
+    });
+
+    expect(payload.params['order'], isA<Map<String, dynamic>>());
+    expect(payload.params['order'], {'id': 1});
+    final items = payload.params['items'] as List<dynamic>;
+    expect(items.single, isA<Map<String, dynamic>>());
+    expect(items.single, {'sku': 'a'});
+  });
 }
