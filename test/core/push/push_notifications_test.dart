@@ -176,6 +176,28 @@ void main() {
     expect(handler.unregistered, ['token-1']);
   });
 
+  test('registrations carry the driver provider', () async {
+    driver.provider = PushProvider.hms;
+    await bind();
+
+    expect(handler.registrations.single.provider, PushProvider.hms);
+  });
+
+  test('a token persisted by the previous provider is unregistered after the switch',
+      () async {
+    SharedPreferences.setMockInitialValues(
+        {PushNotifications.tokenKey: 'fcm-token'});
+    driver
+      ..provider = PushProvider.hms
+      ..token = 'hms-token';
+
+    await bind();
+
+    expect(handler.registrations.single.token, 'hms-token');
+    expect(handler.registrations.single.provider, PushProvider.hms);
+    expect(handler.unregistered, ['fcm-token']);
+  });
+
   test('a repeat of the same token does not unregister', () async {
     await bind();
 

@@ -45,6 +45,8 @@ export 'push/push_message.dart' show PushMessage;
 export 'push/push_platform.dart' show PushPlatform;
 export 'push/push_receipt.dart' show PushReceipt;
 export 'push/push_permission.dart' show PushPermission;
+export 'push/push_provider.dart' show PushProvider;
+export 'push/push_registration.dart' show PushRegistration;
 export 'push/drivers/fcm_push_driver.dart' show FcmPushDriver;
 export 'notification_links/notification_links.dart' show NotificationLinks;
 export 'notification_links/notification_link_config.dart'

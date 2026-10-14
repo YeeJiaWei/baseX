@@ -1,8 +1,12 @@
 import 'package:baseX/Core/push/push_message.dart';
 import 'package:baseX/Core/push/push_permission.dart';
+import 'package:baseX/Core/push/push_provider.dart';
 
 /// Transport contract for a push provider (FCM, HMS, ...).
 abstract class PushDriver {
+  /// The push service this driver talks to.
+  PushProvider get provider;
+
   /// Reads the OS permission; never prompts.
   Future<PushPermission> getPermission();
 

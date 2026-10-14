@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _RoutingOnlyPushHandler extends PushHandler {
   @override
-  Future<void> registerToken(String token, PushPlatform platform, PushPermission permission) async {}
+  Future<void> registerToken(PushRegistration registration) async {}
 
   @override
   Future<void> unregisterToken(String token) async {}

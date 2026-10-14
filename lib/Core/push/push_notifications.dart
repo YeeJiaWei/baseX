@@ -12,6 +12,7 @@ import 'package:baseX/Core/push/push_message.dart';
 import 'package:baseX/Core/push/push_permission.dart';
 import 'package:baseX/Core/push/push_platform.dart';
 import 'package:baseX/Core/push/push_receipt.dart';
+import 'package:baseX/Core/push/push_registration.dart';
 
 /// Push plumbing every app repeats: permission, token lifecycle, listeners and dedup.
 class PushNotifications extends GetxService with WidgetsBindingObserver {
@@ -139,7 +140,7 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
           _token ?? await _loadStoredToken() ?? await _driver.getToken();
       if (currentToken == null) return;
       await _persistToken(currentToken);
-      await _handler.registerToken(currentToken, _platform, permission.value);
+      await _handler.registerToken(_registrationFor(currentToken));
     } catch (error) {
       XLogger.error('push registration failed: $error',
           className: 'PushNotifications');
@@ -165,6 +166,13 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
 
   PushPlatform get _platform =>
       Platform.isIOS ? PushPlatform.ios : PushPlatform.android;
+
+  PushRegistration _registrationFor(String deviceToken) => PushRegistration(
+        token: deviceToken,
+        platform: _platform,
+        provider: _driver.provider,
+        permission: permission.value,
+      );
 
   Future<void> _guard(String step, Future<void> Function() action) async {
     try {
@@ -207,7 +215,7 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
   Future<void> _applyToken(String newToken) async {
     final previous = _token ?? await _loadStoredToken();
     await _persistToken(newToken);
-    await _handler.registerToken(newToken, _platform, permission.value);
+    await _handler.registerToken(_registrationFor(newToken));
     if (previous != null && previous != newToken) {
       await _guard('unregister previous token',
           () => _handler.unregisterToken(previous));

@@ -1,14 +1,12 @@
 import 'package:baseX/Core/notification_links/notification_links.dart';
 import 'package:baseX/Core/push/push_message.dart';
-import 'package:baseX/Core/push/push_permission.dart';
-import 'package:baseX/Core/push/push_platform.dart';
 import 'package:baseX/Core/push/push_receipt.dart';
+import 'package:baseX/Core/push/push_registration.dart';
 
 /// App-side hooks for the domain-specific parts of push handling.
 abstract class PushHandler {
-  /// Sends the token and the live OS permission to the backend.
-  Future<void> registerToken(
-      String token, PushPlatform platform, PushPermission permission);
+  /// Sends the token, its provider and the live OS permission to the backend.
+  Future<void> registerToken(PushRegistration registration);
 
   /// Removes the token from the backend.
   Future<void> unregisterToken(String token);

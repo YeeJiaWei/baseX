@@ -6,6 +6,7 @@ import 'package:baseX/Core/index.dart';
 class FakePushHandler extends PushHandler {
   final registered = <String>[];
   final registeredPermissions = <PushPermission>[];
+  final registrations = <PushRegistration>[];
   final unregistered = <String>[];
   final foreground = <PushMessage>[];
   final opened = <PushMessage>[];
@@ -14,11 +15,11 @@ class FakePushHandler extends PushHandler {
   bool hangUnregister = false;
 
   @override
-  Future<void> registerToken(
-      String token, PushPlatform platform, PushPermission permission) async {
+  Future<void> registerToken(PushRegistration registration) async {
     if (failRegistration) throw StateError('unauthenticated');
-    registered.add(token);
-    registeredPermissions.add(permission);
+    registrations.add(registration);
+    registered.add(registration.token);
+    registeredPermissions.add(registration.permission);
   }
 
   @override

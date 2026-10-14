@@ -7,6 +7,7 @@ import 'package:baseX/Core/logger/x_logger.dart';
 import 'package:baseX/Core/push/push_driver.dart';
 import 'package:baseX/Core/push/push_message.dart';
 import 'package:baseX/Core/push/push_permission.dart';
+import 'package:baseX/Core/push/push_provider.dart';
 
 /// [PushDriver] backed by Firebase Cloud Messaging.
 class FcmPushDriver implements PushDriver {
@@ -22,6 +23,9 @@ class FcmPushDriver implements PushDriver {
 
   static const int _apnsAttempts = 20;
   static const Duration _apnsInterval = Duration(milliseconds: 500);
+
+  @override
+  PushProvider get provider => PushProvider.fcm;
 
   @override
   Future<PushPermission> getPermission() async => _mapStatus(
