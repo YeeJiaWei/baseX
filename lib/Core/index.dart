@@ -48,6 +48,11 @@ export 'push/push_permission.dart' show PushPermission;
 export 'push/push_provider.dart' show PushProvider;
 export 'push/push_registration.dart' show PushRegistration;
 export 'push/drivers/fcm_push_driver.dart' show FcmPushDriver;
+export 'push/drivers/hms_push_driver.dart' show HmsPushDriver;
+export 'push/hms_push_client.dart' show HmsPushClient;
+export 'push/hms_raw_message.dart' show HmsRawMessage;
+export 'push/default_hms_push_client.dart' show DefaultHmsPushClient;
+export 'push/resolve_push_driver.dart' show resolvePushDriver;
 export 'notification_links/notification_links.dart' show NotificationLinks;
 export 'notification_links/notification_link_config.dart'
     show NotificationLinkConfig;
