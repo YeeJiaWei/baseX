@@ -367,6 +367,7 @@ void main() {
       expect(handled, isTrue);
       expect(received.single.int('order_id'), 1042);
       expect(received.single.eventParams['order_id'], '1042');
+      expect(received.single.eventType, 'ORDER_SHIPPED');
       expect(received.single.source, LinkSource.push);
     });
 

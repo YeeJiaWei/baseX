@@ -206,6 +206,7 @@ class NotificationLinks {
           source: source,
           params: params,
           eventParams: eventParams,
+          eventType: type,
         );
         final handled = await _attempt(
           link: event,

@@ -12,6 +12,7 @@ class LinkMatch {
     this.params = const {},
     this.rest = const [],
     this.eventParams = const {},
+    this.eventType,
   });
 
   /// Builds the match [pattern] would produce for [uri]; for tests.
@@ -48,6 +49,9 @@ class LinkMatch {
 
   /// The payload `params` with their JSON types when the link came from an event, else empty; [params] holds path params.
   final Map<String, dynamic> eventParams;
+
+  /// The payload `type` when the link came from an event, else null.
+  final String? eventType;
 
   /// The query string parameters.
   Map<String, String> get query => uri.queryParameters;
