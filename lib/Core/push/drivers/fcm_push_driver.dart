@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:baseX/Core/logger/x_logger.dart';
 import 'package:baseX/Core/push/push_driver.dart';
 import 'package:baseX/Core/push/push_message.dart';
+import 'package:baseX/Core/push/push_payload.dart';
 import 'package:baseX/Core/push/push_permission.dart';
 import 'package:baseX/Core/push/push_provider.dart';
 
@@ -91,11 +92,14 @@ class FcmPushDriver implements PushDriver {
     }
   }
 
-  PushMessage _toMessage(RemoteMessage message) => PushMessage(
-        id: message.messageId,
-        type: message.data['type']?.toString(),
-        title: message.notification?.title,
-        body: message.notification?.body,
-        data: Map<String, dynamic>.from(message.data),
-      );
+  PushMessage _toMessage(RemoteMessage message) {
+    final data = Map<String, dynamic>.from(message.data);
+    return PushMessage(
+      id: message.messageId,
+      title: message.notification?.title,
+      body: message.notification?.body,
+      payload: PushPayload.fromData(data),
+      data: data,
+    );
+  }
 }

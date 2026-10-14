@@ -21,6 +21,11 @@ class FakeFirebaseMessaging implements FirebaseMessaging {
         providesAppNotificationSettings: AppleNotificationSetting.notSupported,
       );
 
+  RemoteMessage? initialMessage;
+
+  @override
+  Future<RemoteMessage?> getInitialMessage() async => initialMessage;
+
   @override
   Future<NotificationSettings> getNotificationSettings() async => _settings;
 

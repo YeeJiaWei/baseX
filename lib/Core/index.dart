@@ -42,6 +42,7 @@ export 'push/push_notifications.dart' show PushNotifications;
 export 'push/push_handler.dart' show PushHandler;
 export 'push/push_driver.dart' show PushDriver;
 export 'push/push_message.dart' show PushMessage;
+export 'push/push_payload.dart' show PushPayload;
 export 'push/push_platform.dart' show PushPlatform;
 export 'push/push_receipt.dart' show PushReceipt;
 export 'push/push_permission.dart' show PushPermission;

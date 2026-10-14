@@ -33,7 +33,8 @@ void main() {
       final message = await foreground(
         const HmsRawMessage(
           id: 'm1',
-          rawData: '{"type":"ORDER_SHIPPED","order_id":"1042"}',
+          rawData:
+              '{"payload":{"type":"ORDER_SHIPPED","delivery_id":"d1","params":{"order_id":1042}}}',
           title: 'Shipped',
           body: 'On its way',
         ),
@@ -43,7 +44,9 @@ void main() {
       expect(message.type, 'ORDER_SHIPPED');
       expect(message.title, 'Shipped');
       expect(message.body, 'On its way');
-      expect(message.data, {'type': 'ORDER_SHIPPED', 'order_id': '1042'});
+      expect(message.payload.deliveryId, 'd1');
+      expect(message.payload.params, {'order_id': 1042});
+      expect(message.data.keys, ['payload']);
     });
 
     test('invalid JSON gives an empty map', () async {
@@ -208,15 +211,15 @@ void main() {
       client.openedController.add(
         const HmsRawMessage(
           id: 'm3',
-          rawData: '{"type":"CHAT","link":"app://chat/1"}',
-          extras: {'type': 'stale', 'google.sent_time': 1},
+          rawData: '{"payload":{"type":"CHAT","link":"chat/1"}}',
+          extras: {'google.sent_time': 1},
         ),
       );
       final message = await next;
 
       expect(message.id, 'm3');
       expect(message.type, 'CHAT');
-      expect(message.data['link'], 'app://chat/1');
+      expect(message.payload.link, 'chat/1');
     });
 
     test(
@@ -224,19 +227,21 @@ void main() {
       () async {
         final next = driver.onOpened.first;
         client.openedController.add(
-          const HmsRawMessage(extras: {'type': 'CHAT', 'link': 'app://chat/2'}),
+          const HmsRawMessage(
+            extras: {'payload': '{"type":"CHAT","link":"chat/2"}'},
+          ),
         );
         final message = await next;
 
         expect(message.type, 'CHAT');
-        expect(message.data['link'], 'app://chat/2');
+        expect(message.payload.link, 'chat/2');
       },
     );
 
     test('the data extra is decoded, not kept as a raw string', () async {
       final next = driver.onOpened.first;
       client.openedController.add(
-        const HmsRawMessage(extras: {'data': '{"type":"CHAT"}'}),
+        const HmsRawMessage(extras: {'data': '{"payload":{"type":"CHAT"}}'}),
       );
       final message = await next;
 
@@ -247,7 +252,7 @@ void main() {
     test('getInitialMessage maps the launching notification', () async {
       client.initial = const HmsRawMessage(
         id: 'm4',
-        rawData: '{"type":"CHAT"}',
+        rawData: '{"payload":"{\\"type\\":\\"CHAT\\"}"}',
         title: 'Hi',
       );
       final message = await driver.getInitialMessage();
