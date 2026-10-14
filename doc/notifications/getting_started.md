@@ -5,7 +5,7 @@ Huawei Push Kit on phones without Google services), foreground / background /
 tap handling, and a path router for the links a notification carries. The app
 writes four small pieces: a `PushHandler`, a route table, the boot wiring and
 a splash exit. This guide builds them in order for a generic shop app
-(`shop://orders/42`).
+(`orders/42`).
 
 ```
   push tap / inbox row tap
@@ -13,7 +13,7 @@ a splash exit. This guide builds them in order for a generic shop app
           v
   +------------------------------------------------------------+
   | NotificationLinks                                          |
-  |   event routes (push type) -> path routes (shop://...)     |
+  |   event routes (payload type) -> path routes (orders/42)   |
   +------------------------------------------------------------+
           |
           v
@@ -112,29 +112,28 @@ class AppPushHandler extends PushHandler {
   }
 
   @override
-  String? messageKey(PushMessage message) => message.data['delivery_id'] as String?;
-}
+  }
 ```
 
 - `registerToken` runs when a token is first obtained, when it rotates, when the
   OS permission changes and after sign-in. Make the backend call idempotent.
 - `unregisterToken` receives the provider the token was issued by, so the backend
   removes it from the right service.
-- `messageKey` is the backend's delivery id; baseX drops a tap whose key it has
-  already handled (a cold-start tap can arrive twice). It defaults to `message.id`.
+- `messageKey` is not overridden: it defaults to the payload's `delivery_id`, else
+  `message.id`. baseX drops a tap whose key it has already handled (a cold-start
+  tap can arrive twice).
 - `onOpened` is **not** overridden: by default a tap goes to
-  `NotificationLinks.maybeInstance?.handleEvent(type, data)`. Override it only to
-  do extra work, and call `super.onOpened(message)` to keep the routing.
+  `NotificationLinks.maybeInstance?.handleEvent(payload.type, params: payload.params, link: payload.link)`.
+  Override it only to do extra work, and call `super.onOpened(message)` to keep
+  the routing.
 
 ## 3. Write the route table
 
 ```dart
 // lib/app/core/notification_links/app_notification_links.dart
 class AppNotificationLinks extends NotificationLinkConfig {
-  @override
-  String get scheme => 'shop';
-
-  // @override String get linkKey => 'link';   // payload key holding the link (default)
+  // Links are plain paths such as `orders/42`. Override `scheme` only if the
+  // backend also writes `shop://orders/42`.
 
   @override
   List<LinkHandler> get routes => [
@@ -287,7 +286,7 @@ onTap: () => NotificationLinks.instance.handle(notification.link),
 `handle` takes the link string and defaults to `LinkSource.inbox`; it returns
 `true` when a route ran. To make an inbox row behave exactly like the push,
 including event routes, call
-`NotificationLinks.instance.handleEvent(row.type, {...row.data, 'link': row.link})`.
+`NotificationLinks.instance.handleEvent(row.type, params: row.params, link: row.link)`.
 
 ## 7. Sign-in and sign-out
 
@@ -307,9 +306,9 @@ Both are no-ops when push is not bound (for example a phone with no push service
 
 - Store the **provider** (`fcm` / `hms`) next to each token and send each token
   through its own service: FCM HTTP v1 for `fcm`, Huawei Push Kit for `hms`.
-- Every message carries `data.type` (`UPPER_SNAKE`) and `data.link`
-  (`shop://orders/1042`), plus `<entity>_id` keys and a unique `delivery_id` if you
-  track delivery. All `data` values are strings.
+- Every message carries `data.payload`, a JSON string holding `type`
+  (`UPPER_SNAKE`), an optional plain-path `link` (`orders/1042`), an optional
+  `delivery_id` and optional `params` with real JSON types.
 - Send a `notification` block (title, body) for anything the user should see.
 - Always send `link`, even when an event route handles the type, and never change
   a link path in place: installed old versions still receive pushes.
@@ -342,7 +341,7 @@ Full field tables, platform options and the Huawei envelope are in
 | Symptom | Cause and fix |
 |---|---|
 | No token on the iOS simulator | Simulators have no APNS token, so the FCM token is skipped (logged as a warning). Push listeners still work; test tokens on a real device. |
-| Taps never open anything | The hold was never ended. Check that the splash calls `release()` or `discard()` on every exit, and that `NotificationLinks.bind` ran before the tap. A link whose scheme is not your `scheme`, or that matches no route, only logs through `onUnknown`. |
+| Taps never open anything | The hold was never ended. Check that the splash calls `release()` or `discard()` on every exit, and that `NotificationLinks.bind` ran before the tap. A link with a scheme your config does not declare, or that matches no route, only logs through `onUnknown`. |
 | Huawei token never arrives | Check, in order: Push Kit enabled in AppGallery Connect, the SHA-256 fingerprint of the key you signed with (debug and release differ), `agconnect-services.json` from the same project in `android/app/`, the `com.huawei.agconnect` plugin applied. `getToken()` waits 10 seconds, then returns `null`. |
 | Huawei background messages missing | The `BackgroundMessageBroadcastReceiver` entry is missing from the app's `AndroidManifest.xml`, or the background handler is not top-level with `@pragma('vm:entry-point')`. |
 | Permission prompt never shows again | By design: `promptIfNeeded()` prompts once per install and stores a `push_prompt_shown` flag in shared preferences. After that the user must enable notifications in system Settings. Clear app data (or reinstall) to test the prompt again. |

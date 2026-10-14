@@ -44,10 +44,11 @@ abstract class PushHandler {
   Future<void> unregisterToken(String token, PushProvider provider);
   void onForeground(PushMessage message) {}
   /// Tap on a push — app running, in background, or cold start.
-  /// Default: NotificationLinks.maybeInstance?.handleEvent(message.type ?? '', message.data) — no-op when unbound.
+  /// Default: NotificationLinks.maybeInstance?.handleEvent(payload.type, params: payload.params, link: payload.link) — no-op when unbound.
   void onOpened(PushMessage message) {}
   void onReceipt(PushMessage message, PushReceipt receipt) {}  // RECEIVED / OPENED
-  String? messageKey(PushMessage message) => message.id;
+  /// Default: message.payload.deliveryId ?? message.id
+  String? messageKey(PushMessage message) => message.payload.deliveryId ?? message.id;
 }
 
 class PushRegistration {
@@ -101,8 +102,11 @@ class PushNotifications extends GetxService {
 }
 ```
 
-`PushMessage` wraps the platform message (`id`, `type`, `title`, `body`,
-`data`), so apps never import `firebase_messaging` directly.
+`PushMessage` wraps the platform message (`id`, `title`, `body`, `payload`,
+`data`), so apps never import `firebase_messaging` directly. `payload` is the
+package-owned object parsed from `data['payload']` (see
+[notification_payload.md](notification_payload.md)); `type` is `payload.type`;
+the other `data` keys belong to the app and pass through untouched.
 
 ## Providers
 
@@ -226,8 +230,8 @@ its own.
 
 A cold-start tap can arrive through both `getInitialMessage` and
 `onMessageOpenedApp`. `PushNotifications` keeps the keys it has handled and drops repeats.
-The key is `handler.messageKey(message)` — override it when the backend sends
-its own delivery id.
+The key is `handler.messageKey(message)`: the payload's `delivery_id`, else the
+platform message id. Override it only for a different scheme.
 
 Dedup applies to taps only (initial message and opened). Foreground messages
 are not deduplicated.
@@ -266,7 +270,8 @@ below. Both SDKs compile into the same build; a device only talks to the one
   listener.
 - **Message data.** The `data` of a Huawei message is one JSON string. The driver
   decodes it into `PushMessage.data`; invalid or non-object JSON becomes an
-  empty map and a log line. `PushMessage.type` is `data['type']`.
+  empty map and a log line. `PushMessage.payload` is parsed from the `payload`
+  entry, which may be a JSON string or a nested object.
 - **Taps.** `onOpened` and `getInitialMessage` read the notification-opened
   event, which carries the intent extras plus `remoteMessage`. Extras and the
   decoded `data` are merged, with the decoded `data` winning.

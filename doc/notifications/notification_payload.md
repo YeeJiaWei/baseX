@@ -6,19 +6,18 @@ show, track and route a push notification.
 ```
  backend
     |
-    |  type, title, body, link, ids
+    |  notification{title, body}  +  data{payload}
     v
  push (FCM or Huawei)
- notification{}, data{} strings
     |
     v
- PushNotifications
+ PushNotifications  -->  PushMessage.payload (type, link, deliveryId, params)
     |
     v
- NotificationLinks.handleEvent(type, data)
-    | no event route
+ NotificationLinks.handleEvent(type, params: params, link: link)
+    | no event route handles the type
     v
- NotificationLinks.handle(data.link)
+ NotificationLinks.handle(link)
 ```
 
 ## Providers and tokens
@@ -28,7 +27,7 @@ Each device token belongs to a provider, sent with the registration
 next to the token and sends through that provider's API: FCM for `fcm`, Huawei
 Push Kit for `hms`. Android phones with Google services (including older Huawei
 phones) register `fcm`; Huawei phones without Google services register `hms`.
-The same logical fields are sent either way; only the envelope differs.
+The same payload is sent either way; only the envelope differs.
 
 ## Push message (FCM)
 
@@ -41,10 +40,7 @@ The same logical fields are sent either way; only the envelope differs.
       "body": "Order #1042 is on its way."
     },
     "data": {
-      "type": "ORDER_SHIPPED",
-      "link": "shop://orders/1042",
-      "delivery_id": "0190a3b2-7c4d-7e8f-9a01-b2c3d4e5f607",
-      "order_id": "1042"
+      "payload": "{\"type\":\"ORDER_SHIPPED\",\"link\":\"orders/1042\",\"delivery_id\":\"0190a3b2-7c4d-7e8f-9a01-b2c3d4e5f607\",\"params\":{\"order_id\":1042}}"
     },
     "android": {
       "priority": "high",
@@ -59,26 +55,33 @@ The same logical fields are sent either way; only the envelope differs.
 }
 ```
 
-### `data` fields
+## The `payload` object
 
-| Key | Required | Value | Used by |
-|---|---|---|---|
-| `type` | yes | `UPPER_SNAKE` event type, e.g. `ORDER_SHIPPED` | event routes, `lastMessageType` |
-| `link` | yes for tappable notifications | `<scheme>://<path>`, e.g. `shop://orders/1042` | path routes (fallback when no event route matches) |
-| `delivery_id` | when delivery is tracked | unique per device send | dedup and `onReceipt`, once the app overrides `PushHandler.messageKey` to return `data['delivery_id']` |
-| `<entity>_id` | per type | flat scalar ids, `snake_case`, e.g. `order_id` | event routes (`require`) |
+baseX reads one fixed key from `data`: `payload`. Its value is the object
+below. The key name is a constant in baseX and cannot be configured.
 
-The key names `link` and `delivery_id` are defaults. An existing backend that
-already sends other names maps them on the client (`NotificationLinkConfig.linkKey`,
-`PushHandler.messageKey`) instead of renaming server fields. `messageKey`
-defaults to `message.id`; an app whose backend sends `delivery_id` overrides it
-to return `data['delivery_id']`.
+| Field | Required | Type | Value | Used by |
+|---|---|---|---|---|
+| `type` | yes, for event routing | string | `UPPER_SNAKE` event type, e.g. `ORDER_SHIPPED` | event routes, `lastMessageType` |
+| `link` | optional | string | plain path, e.g. `orders/1042` (no scheme; a leading `/` is allowed) | path routes, used when no event route handles the type |
+| `delivery_id` | optional | string | unique per device send | tap dedup and `onReceipt` (the default `PushHandler.messageKey`) |
+| `params` | optional | object | values with their real JSON types, e.g. `{"order_id": 1042}` | event routes (`require`, `aliases`) |
 
 ### Rules
 
-- **Every `data` value is a string.** FCM rejects non-string values. Send
-  `"1042"`, not `1042`; `LinkParam.int` parses it back on the client. No
-  nested objects or arrays — flatten to `<entity>_id` keys.
+- **`data` values must be strings, so `payload` is a JSON string.** FCM rejects
+  non-string `data` values. Serialise the whole object into one string under
+  the single key `payload`. Inside that string the values keep their real
+  types: send `1042`, not `"1042"`.
+- **`link` is a plain path.** Write `orders/1042`, not `shop://orders/1042`. A
+  client may opt in to a scheme (`NotificationLinkConfig.scheme`); only then are
+  `scheme://path` links accepted as well.
+- **`params` carries real JSON types.** Numbers, booleans, nested objects and
+  arrays are allowed. `LinkParam.int` accepts a real int and a numeric string.
+- **Other `data` keys belong to the app.** baseX passes them through untouched
+  in `PushMessage.data`.
+- **A missing or malformed `payload` never throws.** The message arrives with an
+  empty payload and a warning is logged; the notification itself still shows.
 - **Always send `link`, even when an event route handles the type.** An older
   app version without that event route still routes through the link.
 - **Never change a link path in place.** Installed old versions still receive
@@ -87,11 +90,11 @@ to return `data['delivery_id']`.
 - **New types are additive.** A client that doesn't know a type falls back to
   `link`, then to `onUnknown`. Never reuse a retired type name for something
   else.
-- **No secrets or personal data in `data`.** Payloads show up in device logs
-  and crash reports. Send ids; the app fetches details through the API.
+- **No secrets or personal data.** Payloads show up in device logs and crash
+  reports. Send ids; the app fetches details through the API.
 - **Stay under 4 KB** for the whole message (FCM limit). Ids, not content.
-- **Reserved keys:** don't use `from`, `notification`, `message_type`,
-  `collapse_key`, or anything starting with `google.` or `gcm.` in `data`.
+- **Reserved `data` keys:** don't use `from`, `notification`, `message_type`,
+  `collapse_key`, or anything starting with `google.` or `gcm.`.
 
 ### `notification` block
 
@@ -112,8 +115,8 @@ are not shown, are throttled by iOS, and are not tappable.
 
 ## Push message (Huawei Push Kit)
 
-For tokens registered with provider `hms`, the same fields go through the Push Kit
-`messages:send` API.
+For tokens registered with provider `hms`, the same payload goes through the
+Push Kit `messages:send` API.
 
 > **Verify against the Huawei Push Kit REST docs before relying on any Huawei
 > field below** — the `messages:send` shape, the token array, `data` as one JSON
@@ -126,7 +129,7 @@ For tokens registered with provider `hms`, the same fields go through the Push K
   "validate_only": false,
   "message": {
     "token": ["<device token>"],
-    "data": "{\"type\":\"ORDER_SHIPPED\",\"link\":\"shop://orders/1042\",\"delivery_id\":\"0190a3b2-7c4d-7e8f-9a01-b2c3d4e5f607\",\"order_id\":\"1042\"}",
+    "data": "{\"payload\":{\"type\":\"ORDER_SHIPPED\",\"link\":\"orders/1042\",\"delivery_id\":\"0190a3b2-7c4d-7e8f-9a01-b2c3d4e5f607\",\"params\":{\"order_id\":1042}}}",
     "android": {
       "urgency": "HIGH",
       "collapse_key": 1,
@@ -144,7 +147,7 @@ For tokens registered with provider `hms`, the same fields go through the Push K
 
 | FCM | Huawei |
 |---|---|
-| `data` map of strings | `data` is **one JSON string** holding the same keys; the client decodes it, so every rule above (string values, flat keys, `type` and `link`) still applies inside it |
+| `data` map whose `payload` value is a JSON string | `data` is **one JSON string** holding `{"payload": {...}}`; the object is nested directly, though a JSON string value is accepted too |
 | `notification.title` / `body` | `android.notification.title` / `body` |
 | `android.notification.channel_id` | `android.notification.channel_id` |
 | `android.notification.tag` | `android.notification.tag` |
@@ -153,6 +156,6 @@ For tokens registered with provider `hms`, the same fields go through the Push K
 | tap opens the app by default | set `android.notification.click_action.type` to `3` (open the app); without it a tap reportedly does not reach the app, so `onOpened` never fires (verify) |
 
 The notification-opened event hands the client the intent extras and the
-message; the client merges them with the decoded `data` and routes on
-`type` / `link` exactly as for FCM. The no-secrets rule applies to the whole
-message, and so does a size limit (4 KB assumed; verify Huawei's).
+message; the client merges them with the decoded `data` and reads `payload`
+exactly as for FCM. The no-secrets rule applies to the whole message, and so
+does a size limit (4 KB assumed; verify Huawei's).
