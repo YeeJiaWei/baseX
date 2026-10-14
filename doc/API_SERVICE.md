@@ -204,7 +204,88 @@ compares it with the `X-User-Checksum` header, and adds `user` +
 *after* the envelope middleware on the response path, or the envelope drops
 the sibling keys.
 
-## 5. Migration from the old API
+## 5. Making requests
+
+Verbs live on `ApiXService` (`get`, `post`, `put`, `delete`) and every one
+returns the raw dio `Response?` — **not** a model. It is `null` when the
+request failed (the callbacks already ran), the `Response` on 2xx. Failures
+are swallowed into `null`; a verb never throws, so don't wrap it in try/catch.
+Deserialise at the call site with the null-safe `Response?` extensions:
+
+| Extension | Result |
+| --- | --- |
+| `res.toObject(Model.fromJson)` | `T?` from the envelope's `data` map |
+| `res.toList(Model.fromJson)` | `List<T>?` from the envelope's `data` list |
+| `res.xMessage` | envelope `message`, `''` when absent |
+
+- `endpoint` has no leading slash (`'banners'`); `pathParam` is appended as `/id`.
+  `delete` takes the `pathParam` as its second positional argument.
+- `queryParam` is `JSON` (`Map<String, dynamic>`).
+
+### Callbacks
+
+| Callback | Fires on | Argument |
+| --- | --- | --- |
+| `onSuccess(Response)` | 2xx | the response |
+| `onError(Response)` | 4xx/5xx (a response was received) | the response, never null |
+| `onTimeout()` | no response: timeout or dropped connection | none |
+| `onComplete(Response?)` | always, after the above | the response, or null |
+
+There is no positional failure callback. To learn the cause, read it in
+`onError` / `onTimeout`.
+
+### Token
+
+`requiredToken` defaults to **true**: `AuthApiMixin` attaches
+`Authorization: Bearer <XAuthStore.cachedToken>`. Pass `requiredToken: false`
+for login, OTP, public content and foreign APIs. A 401 on a `requiredToken:
+true` call clears the token automatically (see [AUTH.md](AUTH.md)).
+
+### Request bodies
+
+- **`post`** sends `FormData.fromMap(body, ListFormat.multiCompatible)`: list
+  values are bracket-encoded for you (`genders[]=f&genders[]=m`). Post plain
+  Lists, usually straight from `toJson()`; do not pre-encode keys like
+  `'genders[]'` or `'genders[0]'`. Nested maps are not flattened — keep bodies
+  one level deep or send id lists.
+- FormData **stringifies every value** (`1` → `"1"`, `true` → `"true"`). Coerce
+  on the server, and cast deliberately when storing into a JSON/key-value column.
+- **`put`** passes the map straight to dio, so it is a JSON body — not
+  multipart, and lists are not bracket-encoded. Use it only for endpoints that
+  expect JSON; for create/update where the server reads form fields, use `post`.
+  There is no `patch` verb.
+
+### Errors
+
+`ApiErrorInterceptor` maps failures to `XError` subclasses (extending
+`DioException`) using the connection's `BaseXHttp` mapping:
+
+| Status (default) | Class |
+| --- | --- |
+| 400 | `InvalidRequestException` |
+| 401 | `UnauthorizedException` |
+| 404 | `NotFoundException` |
+| 409 | `VersionOutdateException` |
+| 422 | `ValidationException` |
+| 426 | `ForceUpdateException` |
+| 429 | `TooManyRequestException` |
+| 500 | `InternalServerErrorException` |
+| 503 | `MaintenanceException` |
+| timeouts | `TimeOutException`; no connection: `NoConnectionException` |
+
+Callbacks receive the `Response`, not the exception: branch on
+`r.statusCode` and read `r.xMessage`. 422 validation errors sit in the response
+body (`r.data`). Override codes per connection with a `BaseXHttp` subclass
+returned from the connection's `http` getter. With `runXApp(required200: true)`
+a 2xx body with `code >= 200` and a falsy `status` is treated as a failure and
+routed to `onError`.
+
+### Timeouts
+
+`timeout` (default 60s) is the **connect** timeout. Timeouts and dropped
+connections land in `onTimeout`, and the verb returns `null`.
+
+## 6. Migration from the old API
 
 | Before | After |
 | --- | --- |
