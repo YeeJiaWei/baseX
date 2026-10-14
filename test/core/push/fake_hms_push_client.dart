@@ -3,9 +3,24 @@ import 'dart:async';
 import 'package:huawei_push/huawei_push.dart' show RemoteMessage;
 
 import 'package:baseX/Core/index.dart';
+import 'package:baseX/Core/push/default_hms_push_client.dart';
+
+import 'fake_plugin_event_channel.dart';
 
 /// Scriptable [HmsPushClient] with no platform channels.
+///
+/// Tokens flow through the real [DefaultHmsPushClient] fan-out over a single-handler [tokenChannel].
 class FakeHmsPushClient implements HmsPushClient {
+  FakeHmsPushClient() {
+    _shared = DefaultHmsPushClient(tokenSource: () => tokenChannel.stream);
+  }
+
+  final tokenChannel = FakePluginEventChannel<String>();
+  late final DefaultHmsPushClient _shared;
+
+  /// Subscriptions currently open on [tokenStream].
+  int activeTokenListeners = 0;
+
   int tokenRequests = 0;
   int deleteCount = 0;
   bool notificationsEnabled = true;
@@ -13,7 +28,6 @@ class FakeHmsPushClient implements HmsPushClient {
   HmsRawMessage? initial;
   void Function(RemoteMessage message)? registeredBackgroundHandler;
 
-  final tokenController = StreamController<String>.broadcast();
   final dataController = StreamController<HmsRawMessage>.broadcast();
   final openedController = StreamController<HmsRawMessage>.broadcast();
 
@@ -21,7 +35,17 @@ class FakeHmsPushClient implements HmsPushClient {
   void requestToken() => tokenRequests++;
 
   @override
-  Stream<String> get tokenStream => tokenController.stream;
+  Stream<String> get tokenStream => Stream<String>.multi((controller) {
+    activeTokenListeners++;
+    final subscription = _shared.tokenStream.listen(
+      controller.add,
+      onError: controller.addError,
+    );
+    controller.onCancel = () {
+      activeTokenListeners--;
+      return subscription.cancel();
+    };
+  });
 
   @override
   Future<void> deleteToken() async => deleteCount++;

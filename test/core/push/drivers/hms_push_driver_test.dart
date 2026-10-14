@@ -76,9 +76,9 @@ void main() {
     test('returns the first non-empty token from the stream', () async {
       final result = driver.getToken();
       await settle();
-      client.tokenController
-        ..add('')
-        ..add('hms-1');
+      client.tokenChannel
+        ..emit('')
+        ..emit('hms-1');
 
       expect(await result, 'hms-1');
       expect(client.tokenRequests, 1);
@@ -92,7 +92,7 @@ void main() {
     test('returns null when the stream errors', () async {
       final result = driver.getToken();
       await settle();
-      client.tokenController.addError(StateError('boom'));
+      client.tokenChannel.emitError(StateError('boom'));
 
       expect(await result, isNull);
     });
@@ -104,9 +104,9 @@ void main() {
 
       final result = driver.getToken();
       await settle();
-      client.tokenController.add('hms-1');
+      client.tokenChannel.emit('hms-1');
       await result;
-      client.tokenController.add('hms-1');
+      client.tokenChannel.emit('hms-1');
       await settle();
 
       expect(refreshed, isEmpty);
@@ -115,13 +115,84 @@ void main() {
     test('a changed token is emitted as a refresh', () async {
       final result = driver.getToken();
       await settle();
-      client.tokenController.add('hms-1');
+      client.tokenChannel.emit('hms-1');
       await result;
 
       final next = driver.onTokenRefresh.first;
-      client.tokenController.add('hms-2');
+      client.tokenChannel.emit('hms-2');
 
       expect(await next, 'hms-2');
+    });
+
+    test(
+      'a rotation still reaches onTokenRefresh after getToken completes',
+      () async {
+        final refreshed = <String>[];
+        final subscription = driver.onTokenRefresh.listen(refreshed.add);
+        addTearDown(subscription.cancel);
+
+        final result = driver.getToken();
+        await settle();
+        client.tokenChannel.emit('hms-1');
+        await result;
+        client.tokenChannel.emit('hms-2');
+        await settle();
+
+        expect(refreshed, ['hms-2']);
+        expect(client.tokenChannel.listenCount, 1);
+      },
+    );
+
+    test(
+      'concurrent getToken calls share one request and both get the token',
+      () async {
+        final first = driver.getToken();
+        final second = driver.getToken();
+        await settle();
+        client.tokenChannel.emit('hms-1');
+
+        expect(await first, 'hms-1');
+        expect(await second, 'hms-1');
+        expect(client.tokenRequests, 1);
+      },
+    );
+
+    test('a timed out getToken cancels its subscription', () async {
+      expect(await driver.getToken(), isNull);
+
+      expect(client.activeTokenListeners, 0);
+    });
+
+    test('an errored getToken cancels its subscription', () async {
+      final result = driver.getToken();
+      await settle();
+      client.tokenChannel.emitError(StateError('boom'));
+      await result;
+
+      expect(client.activeTokenListeners, 0);
+    });
+
+    test('a token arriving after the timeout reaches onTokenRefresh', () async {
+      final refreshed = <String>[];
+      final subscription = driver.onTokenRefresh.listen(refreshed.add);
+      addTearDown(subscription.cancel);
+
+      expect(await driver.getToken(), isNull);
+      client.tokenChannel.emit('late-token');
+      await settle();
+
+      expect(refreshed, ['late-token']);
+    });
+
+    test('getToken can be called again after a timeout', () async {
+      expect(await driver.getToken(), isNull);
+
+      final retry = driver.getToken();
+      await settle();
+      client.tokenChannel.emit('hms-1');
+
+      expect(await retry, 'hms-1');
+      expect(client.tokenRequests, 2);
     });
 
     test('deleteToken calls the client', () async {
