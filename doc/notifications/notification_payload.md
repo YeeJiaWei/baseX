@@ -1,29 +1,24 @@
 # Notification Payload — JSON structure
 
 The JSON the backend sends so `PushNotifications` and `NotificationLinks` can
-show, track and route a notification. The same fields go into the push
-message and into the inbox row, so a push tap and an inbox tap route the same
-way.
+show, track and route a push notification.
 
 ```
  backend
     |
-    |  type, title, body, link, ids   (same values in both)
-    +--------------------+
-    v                    v
- push (FCM or Huawei) inbox row (DB + API)
- notification{}      type, title, body,
- data{} strings      link, ids, read_at
-    |                    |
-    v                    v
- PushNotifications   inbox page
-    |                    |
-    +--------+-----------+
-             v
-   NotificationLinks.handleEvent(type, data)
-             | no event route
-             v
-   NotificationLinks.handle(data.link)
+    |  type, title, body, link, ids
+    v
+ push (FCM or Huawei)
+ notification{}, data{} strings
+    |
+    v
+ PushNotifications
+    |
+    v
+ NotificationLinks.handleEvent(type, data)
+    | no event route
+    v
+ NotificationLinks.handle(data.link)
 ```
 
 ## Providers and tokens
@@ -48,7 +43,6 @@ The same logical fields are sent either way; only the envelope differs.
     "data": {
       "type": "ORDER_SHIPPED",
       "link": "shop://orders/1042",
-      "notification_id": "9f1c2e4a-0d6b-4c51-9a63-1b2f0e7d8c11",
       "delivery_id": "0190a3b2-7c4d-7e8f-9a01-b2c3d4e5f607",
       "order_id": "1042"
     },
@@ -71,7 +65,6 @@ The same logical fields are sent either way; only the envelope differs.
 |---|---|---|---|
 | `type` | yes | `UPPER_SNAKE` event type, e.g. `ORDER_SHIPPED` | event routes, `lastMessageType` |
 | `link` | yes for tappable notifications | `<scheme>://<path>`, e.g. `shop://orders/1042` | path routes (fallback when no event route matches) |
-| `notification_id` | when an inbox row exists | inbox row id | mark the row read on open |
 | `delivery_id` | when delivery is tracked | unique per device send | dedup and `onReceipt`, once the app overrides `PushHandler.messageKey` to return `data['delivery_id']` |
 | `<entity>_id` | per type | flat scalar ids, `snake_case`, e.g. `order_id` | event routes (`require`) |
 
@@ -114,7 +107,7 @@ are not shown, are throttled by iOS, and are not tappable.
 | `android.notification.channel_id` | Must match a channel the app creates; one per category (`orders`, `chat`, …) so users can mute by category |
 | `android.collapse_key` / `notification.tag` | A newer push for the same entity replaces the old one in the tray |
 | `apns.headers.apns-collapse-id` | Same, on iOS |
-| `apns.payload.aps.badge` | App icon badge — the unread inbox count |
+| `apns.payload.aps.badge` | App icon badge — the unread count |
 | `android.priority: high` | Needed for timely delivery when the device is idle; use only for user-visible pushes |
 
 ## Push message (Huawei Push Kit)
@@ -133,7 +126,7 @@ For tokens registered with provider `hms`, the same fields go through the Push K
   "validate_only": false,
   "message": {
     "token": ["<device token>"],
-    "data": "{\"type\":\"ORDER_SHIPPED\",\"link\":\"shop://orders/1042\",\"notification_id\":\"9f1c2e4a-0d6b-4c51-9a63-1b2f0e7d8c11\",\"delivery_id\":\"0190a3b2-7c4d-7e8f-9a01-b2c3d4e5f607\",\"order_id\":\"1042\"}",
+    "data": "{\"type\":\"ORDER_SHIPPED\",\"link\":\"shop://orders/1042\",\"delivery_id\":\"0190a3b2-7c4d-7e8f-9a01-b2c3d4e5f607\",\"order_id\":\"1042\"}",
     "android": {
       "urgency": "HIGH",
       "collapse_key": 1,
@@ -163,24 +156,3 @@ The notification-opened event hands the client the intent extras and the
 message; the client merges them with the decoded `data` and routes on
 `type` / `link` exactly as for FCM. The no-secrets rule applies to the whole
 message, and so does a size limit (4 KB assumed; verify Huawei's).
-
-## Inbox row
-
-The inbox API returns the same fields, plus read state:
-
-```json
-{
-  "id": "9f1c2e4a-0d6b-4c51-9a63-1b2f0e7d8c11",
-  "type": "ORDER_SHIPPED",
-  "title": "Your order has shipped",
-  "body": "Order #1042 is on its way.",
-  "link": "shop://orders/1042",
-  "data": { "order_id": 1042 },
-  "read_at": null,
-  "created_at": "2026-10-13T09:30:00Z"
-}
-```
-
-The inbox is plain JSON, so ids may keep their real types here. The app taps a
-row with `NotificationLinks.instance.handle(row.link)`. Use
-`handleEvent(row.type, {...})` instead when inbox rows should hit event routes by type.
