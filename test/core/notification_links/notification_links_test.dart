@@ -471,6 +471,15 @@ void main() {
     });
   });
 
+  group('plain path detection', () {
+    test('a plain path with :// only in its query stays a plain path', () async {
+      final links = bindRoutes(_TestConfig(routes: [record('orders/{id:int}')]));
+
+      expect(await links.handle('orders/1?next=https://x'), isTrue);
+      expect(calls, ['orders/{id:int} /orders/1']);
+    });
+  });
+
   group('hold', () {
     test('queues only the latest call and release runs it', () async {
       final links = bindRoutes(_TestConfig(routes: [record('a'), record('b')]));
@@ -539,6 +548,49 @@ void main() {
 
       expect(received.single.source, LinkSource.push);
       expect(received.single.eventParams, {'order_id': '7'});
+    });
+
+    test('a held event match with a link re-runs the event route on release',
+        () async {
+      final received = <LinkMatch>[];
+      final links = bindRoutes(_TestConfig(
+        routes: [record('orders/{id:int}')],
+        events: [_OrderEvent(received)],
+      ));
+
+      links.holdLink(LinkMatch(
+        uri: Uri.parse('/orders/3'),
+        source: LinkSource.push,
+        eventParams: const {'order_id': 9},
+        eventType: 'ORDER_SHIPPED',
+      ));
+      await links.release();
+
+      expect(received.single.eventType, 'ORDER_SHIPPED');
+      expect(received.single.source, LinkSource.push);
+      expect(received.single.int('order_id'), 9);
+      expect(calls, isEmpty);
+    });
+
+    test('a held event match without a link re-runs the event route on release',
+        () async {
+      final received = <LinkMatch>[];
+      final config = _TestConfig(
+        routes: const [],
+        events: [_OrderEvent(received)],
+      );
+      final links = bindRoutes(config);
+
+      links.holdLink(LinkMatch(
+        uri: Uri(path: 'event/ORDER_SHIPPED'),
+        source: LinkSource.push,
+        eventParams: const {'order_id': 9},
+        eventType: 'ORDER_SHIPPED',
+      ));
+      await links.release();
+
+      expect(received.single.eventType, 'ORDER_SHIPPED');
+      expect(config.unknown, isEmpty);
     });
 
     test('release with nothing queued does nothing', () async {
