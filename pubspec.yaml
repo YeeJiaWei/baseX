@@ -17,6 +17,8 @@ dependencies:
 
   dio: ^5.9.1
   huawei_hmsavailability: ^6.12.0+300
+  # Huawei Push Kit (HMS) transport for devices without Google services
+  huawei_push: ^6.15.0+300
   gms_check: ^1.0.4
   device_info_plus: ^12.3.0
   package_info_plus: ^9.0.0
