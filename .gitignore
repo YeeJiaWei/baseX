@@ -29,3 +29,6 @@
 .pub/
 /build/
 
+
+# Local working material (briefs, release notes, secrets) — never committed
+.work/
