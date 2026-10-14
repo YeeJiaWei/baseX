@@ -6,7 +6,7 @@ class _RoutingOnlyPushHandler extends PushHandler {
   Future<void> registerToken(PushRegistration registration) async {}
 
   @override
-  Future<void> unregisterToken(String token) async {}
+  Future<void> unregisterToken(String token, PushProvider provider) async {}
 }
 
 class _ShopLinks extends NotificationLinkConfig {

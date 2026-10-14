@@ -8,6 +8,7 @@ class FakePushHandler extends PushHandler {
   final registeredPermissions = <PushPermission>[];
   final registrations = <PushRegistration>[];
   final unregistered = <String>[];
+  final unregisteredProviders = <PushProvider>[];
   final foreground = <PushMessage>[];
   final opened = <PushMessage>[];
   final receipts = <PushReceipt>[];
@@ -23,9 +24,10 @@ class FakePushHandler extends PushHandler {
   }
 
   @override
-  Future<void> unregisterToken(String token) async {
+  Future<void> unregisterToken(String token, PushProvider provider) async {
     if (hangUnregister) return Completer<void>().future;
     unregistered.add(token);
+    unregisteredProviders.add(provider);
   }
 
   @override

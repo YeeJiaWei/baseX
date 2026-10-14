@@ -174,6 +174,7 @@ void main() {
 
     expect(handler.registered, ['token-1', 'token-2']);
     expect(handler.unregistered, ['token-1']);
+    expect(handler.unregisteredProviders, [PushProvider.fcm]);
   });
 
   test('registrations carry the driver provider', () async {
@@ -196,6 +197,77 @@ void main() {
     expect(handler.registrations.single.token, 'hms-token');
     expect(handler.registrations.single.provider, PushProvider.hms);
     expect(handler.unregistered, ['fcm-token']);
+  });
+
+  test('a stored fcm token is never registered under hms and is unregistered',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      PushNotifications.tokenKey: 'fcm-token',
+      PushNotifications.tokenProviderKey: 'fcm',
+    });
+    driver
+      ..provider = PushProvider.hms
+      ..tokenCompleter = Completer<String?>();
+    final push = await PushNotifications.bind(driver: driver, handler: handler);
+
+    final refresh = push.refreshRegistration();
+    await settle();
+
+    expect(handler.registered, isEmpty);
+    expect(handler.unregistered, ['fcm-token']);
+    expect(handler.unregisteredProviders, [PushProvider.fcm]);
+
+    driver.tokenCompleter!.complete('hms-token');
+    await refresh;
+    await settle();
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(handler.registered.toSet(), {'hms-token'});
+    expect(handler.registrations.map((r) => r.provider).toSet(),
+        {PushProvider.hms});
+    expect(handler.unregistered, ['fcm-token']);
+    expect(prefs.getString(PushNotifications.tokenProviderKey), 'hms');
+  });
+
+  test('a stored token with no provider is treated as fcm', () async {
+    SharedPreferences.setMockInitialValues(
+        {PushNotifications.tokenKey: 'legacy-token'});
+    driver
+      ..provider = PushProvider.hms
+      ..tokenCompleter = Completer<String?>();
+    final push = await PushNotifications.bind(driver: driver, handler: handler);
+
+    unawaited(push.refreshRegistration());
+    await settle();
+
+    expect(handler.registered, isEmpty);
+    expect(handler.unregistered, ['legacy-token']);
+    expect(handler.unregisteredProviders, [PushProvider.fcm]);
+  });
+
+  test('a legacy token is kept when the driver is fcm', () async {
+    SharedPreferences.setMockInitialValues(
+        {PushNotifications.tokenKey: 'token-1'});
+    await bind();
+
+    expect(handler.unregistered, isEmpty);
+    expect(handler.registered, ['token-1']);
+  });
+
+  test('sign-out unregisters a stale token under its own provider', () async {
+    SharedPreferences.setMockInitialValues({
+      PushNotifications.tokenKey: 'fcm-token',
+      PushNotifications.tokenProviderKey: 'fcm',
+    });
+    driver
+      ..provider = PushProvider.hms
+      ..tokenCompleter = Completer<String?>();
+    final push = await PushNotifications.bind(driver: driver, handler: handler);
+
+    await push.unregisterCurrentToken();
+
+    expect(handler.unregistered, ['fcm-token']);
+    expect(handler.unregisteredProviders, [PushProvider.fcm]);
   });
 
   test('a repeat of the same token does not unregister', () async {
