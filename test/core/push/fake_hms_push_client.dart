@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:huawei_push/huawei_push.dart' show RemoteMessage;
 
 import 'package:baseX/Core/index.dart';
-import 'package:baseX/Core/push/default_hms_push_client.dart';
 
 import 'fake_plugin_event_channel.dart';
 
