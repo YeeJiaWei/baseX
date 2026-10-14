@@ -182,4 +182,5 @@ The inbox API returns the same fields, plus read state:
 ```
 
 The inbox is plain JSON, so ids may keep their real types here. The app taps a
-row with `NotificationLinks.instance.handleEvent(row.type, {...row.data, 'link': row.link})`.
+row with `NotificationLinks.instance.handle(row.link)`. Use
+`handleEvent(row.type, {...})` instead when inbox rows should hit event routes by type.

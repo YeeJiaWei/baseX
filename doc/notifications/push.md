@@ -44,7 +44,7 @@ abstract class PushHandler {
   Future<void> unregisterToken(String token, PushProvider provider);
   void onForeground(PushMessage message) {}
   /// Tap on a push — app running, in background, or cold start.
-  /// Default: NotificationLinks.instance.handleEvent(...) when bound.
+  /// Default: NotificationLinks.maybeInstance?.handleEvent(message.type ?? '', message.data) — no-op when unbound.
   void onOpened(PushMessage message) {}
   void onReceipt(PushMessage message, PushReceipt receipt) {}  // RECEIVED / OPENED
   String? messageKey(PushMessage message) => message.id;
@@ -193,6 +193,11 @@ It belongs to the FCM driver because its signature is Firebase's.
 `@pragma('vm:entry-point')` function that receives a `huawei_push`
 `RemoteMessage`; it is registered with the plugin on construction.
 
+Background handler signatures:
+
+- FCM: `Future<void> Function(RemoteMessage)` (firebase_messaging), top-level with `@pragma('vm:entry-point')`.
+- HMS: `void Function(RemoteMessage)` (huawei_push), top-level with `@pragma('vm:entry-point')`.
+
 ## Lifecycle
 
 | Event | PushNotifications does | Handler hook |
@@ -202,8 +207,8 @@ It belongs to the FCM driver because its signature is Firebase's.
 | token refresh | persist new token | `registerToken(new)`, then `unregisterToken(previous)` |
 | app resume | re-read permission; if changed, `refreshRegistration()` | `registerToken` |
 | `promptIfNeeded()` | prompt once, then `refreshRegistration()` | `registerToken` |
-| `XAuthStore.onSignedIn` | `refreshRegistration()` | `registerToken` |
-| `XAuthStore.onSignedOut` | — | `unregisterToken` |
+| `XAuthStore.signIn()` | `refreshRegistration()`, not awaited, after `onSignedIn` | `registerToken` |
+| `XAuthStore.signOut()` | `unregisterCurrentToken()` first, only when a token is held; bounded by a timeout; runs before the remote revoke and `onSignedOut` | `unregisterToken` |
 | foreground message | publish `lastMessageType` | `onReceipt(RECEIVED)`, `onForeground` |
 | tap (running or background) | dedup, publish type | `onReceipt(OPENED)`, `onOpened` |
 | tap (cold start) | dedup, publish type | `onReceipt(OPENED)`, `onOpened` |
@@ -223,6 +228,9 @@ A cold-start tap can arrive through both `getInitialMessage` and
 `onMessageOpenedApp`. `PushNotifications` keeps the keys it has handled and drops repeats.
 The key is `handler.messageKey(message)` — override it when the backend sends
 its own delivery id.
+
+Dedup applies to taps only (initial message and opened). Foreground messages
+are not deduplicated.
 
 ## Android foreground
 

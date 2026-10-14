@@ -380,12 +380,13 @@ abstract class EventHandler {
   Map<String, LinkParam> get require => const {};        // skipped unless present and valid
   Map<String, List<String>> get aliases => const {};     // older key names for the same field
   List<LinkGuard> get guards => const [];
+  bool get public => false;
   Future<bool> canHandle(LinkMatch event) async => true;
   Future<void> handle(LinkMatch event);
 }
 ```
 
-Closure:
+Closure (`EventRoute` also takes `public:`, default `false`, like `LinkRoute`):
 
 ```dart
 EventRoute(
