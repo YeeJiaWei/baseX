@@ -21,9 +21,9 @@ supplies only what is domain-specific through a `PushHandler`.
                     |  PushDriver <-- FcmPushDriver /            |
                     |                 HmsPushDriver (per device) |
                     +--------+---------------------^-------------+
-                             | calls hooks         | XAuthStore lifecycle:
-                             v                     | onSignedIn  -> registerToken
-                    +--------------------------+   | onSignedOut -> unregisterToken
+                             | calls hooks         | XAuthStore:
+                             v                     | signIn()  -> registerToken
+                    +--------------------------+   | signOut() -> unregisterToken
                     | App: PushHandler         |---+
                     |  registerToken / unregisterToken -> backend
                     |  onForeground -> in-app banner, refresh lists
