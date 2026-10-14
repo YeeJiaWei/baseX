@@ -16,8 +16,8 @@ supplies only what is domain-specific through a `PushHandler`.
                     |   - permission: live, prompt once          |
                     |   - cold-start tap -> onOpened (app holds) |
                     |   - dedup by message key, lastMessageType  |
-                    |  PushDriver <-- FcmPushDriver / HmsPush- |
-                    |                   Driver (per device)      |
+                    |  PushDriver <-- FcmPushDriver /            |
+                    |                 HmsPushDriver (per device) |
                     +--------+---------------------^-------------+
                              | calls hooks         | XAuthStore lifecycle:
                              v                     | onSignedIn  -> registerToken
@@ -39,7 +39,7 @@ The message shape the backend sends is in
 abstract class PushHandler {
   /// Sends the token, its provider and the live OS permission to the backend.
   Future<void> registerToken(PushRegistration registration);
-  Future<void> unregisterToken(String token);
+  Future<void> unregisterToken(String token, PushProvider provider);
   void onForeground(PushMessage message) {}
   /// Tap on a push — app running, in background, or cold start.
   /// Default: NotificationLinks.instance.handleEvent(...) when bound.
@@ -132,10 +132,15 @@ is not), and can be injected through `isGms` / `isHms` / `isIOS` for tests. If
 detection throws, it logs and falls back to FCM.
 
 Each `PushRegistration` carries the `provider`, so the backend knows which
-service to send a token through. When a device switches provider between
-launches (for example Google services were removed), the new token differs from
-the persisted one, so the normal token-change path runs: `registerToken(new)`,
-then `unregisterToken(previous)`.
+service to send a token through, and `unregisterToken(token, provider)` carries
+it too, so the backend removes the token from the right service.
+
+The persisted token is stored together with its provider. When a device switches
+provider between launches (for example Google services were removed), the stored
+token no longer matches the bound driver, so it is never registered under the new
+provider: it is unregistered under its own provider (best effort) and dropped, and
+the new provider's token is fetched and registered. A token stored before the
+provider was recorded is treated as `fcm`.
 
 ## Permission
 
@@ -240,16 +245,25 @@ below. Both SDKs compile into the same build; a device only talks to the one
 
 - **Token.** `huawei_push` delivers the token on a stream after `Push.getToken('')`,
   so `getToken()` requests it and waits up to 10 seconds for the first non-empty
-  token. On timeout or error it logs and returns `null`; a late token still
-  arrives through `onTokenRefresh`. Tokens that `getToken()` already returned are
-  not repeated as refreshes.
+  token. Concurrent calls share one request. On timeout or error it cancels its
+  subscription, logs and returns `null`; a token that arrives afterwards is
+  emitted through `onTokenRefresh` like any rotation. Tokens that `getToken()`
+  already returned are not repeated as refreshes.
+- **Shared plugin streams.** `huawei_push` keeps one handler per event channel,
+  so a second subscription replaces the first and a cancel silences the channel.
+  `DefaultHmsPushClient` subscribes to each plugin stream (token, data messages,
+  notification opened) at most once, never cancels it, and fans it out to every
+  listener.
 - **Message data.** The `data` of a Huawei message is one JSON string. The driver
   decodes it into `PushMessage.data`; invalid or non-object JSON becomes an
   empty map and a log line. `PushMessage.type` is `data['type']`.
 - **Taps.** `onOpened` and `getInitialMessage` read the notification-opened
   event, which carries the intent extras plus `remoteMessage`. Extras and the
   decoded `data` are merged, with the decoded `data` winning.
-- **Foreground.** `onForeground` is the plugin's data-message stream.
+- **Foreground.** `onForeground` is the plugin's data-message stream. Whether
+  the HMS SDK delivers notification messages that also carry `data` to
+  `onMessageReceived` while the app is in the foreground is unverified (the SDK
+  is closed source) and needs a check on a real Huawei device.
 
 ## Android setup for HMS
 
@@ -311,5 +325,28 @@ below. Both SDKs compile into the same build; a device only talks to the one
    -keep class com.huawei.hms.**{*;}
    -keep class com.huawei.hms.flutter.**{*;}
    ```
-7. **Token scope.** The default client requests tokens with an empty scope, which
+7. **Background message receiver.** The plugin's own manifest does not declare
+   the receiver that hands background data messages to the Dart handler, so add
+   it inside `<application>` in the app's `android/app/src/main/AndroidManifest.xml`
+   (copied from the plugin's example app):
+
+   ```xml
+   <receiver
+       android:name="com.huawei.hms.flutter.push.receiver.BackgroundMessageBroadcastReceiver"
+       android:exported="false">
+       <intent-filter>
+           <action android:name="com.huawei.hms.flutter.push.receiver.BACKGROUND_REMOTE_MESSAGE" />
+       </intent-filter>
+   </receiver>
+   ```
+8. **Auto init (optional).** The example app also sets
+   `push_kit_auto_init_enabled` so the SDK obtains a token on startup. It is not
+   required, because `getToken()` requests the token explicitly:
+
+   ```xml
+   <meta-data
+       android:name="push_kit_auto_init_enabled"
+       android:value="true" />
+   ```
+9. **Token scope.** The default client requests tokens with an empty scope, which
    uses the app's own AppGallery Connect project.

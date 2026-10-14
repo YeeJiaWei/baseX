@@ -120,7 +120,13 @@ are not shown, are throttled by iOS, and are not tappable.
 ## Push message (Huawei Push Kit)
 
 For tokens registered with provider `hms`, the same fields go through the Push Kit
-`messages:send` API:
+`messages:send` API.
+
+> **Verify against the Huawei Push Kit REST docs before relying on any Huawei
+> field below** — the `messages:send` shape, the token array, `data` as one JSON
+> string, `android.urgency`, the integer `collapse_key`, `click_action.type: 3`,
+> the 4 KB limit and the claim that a tap without `click_action` never reaches
+> the app. They were written from memory of the API, not checked against it.
 
 ```json
 {
@@ -151,12 +157,12 @@ For tokens registered with provider `hms`, the same fields go through the Push K
 | `android.notification.tag` | `android.notification.tag` |
 | `android.collapse_key` (string) | `android.collapse_key` is an integer; map each collapse group to one |
 | `android.priority: high` | `android.urgency: HIGH` |
-| tap opens the app by default | set `android.notification.click_action.type` to `3` (open the app); without it a tap does not reach the app, so `onOpened` never fires |
+| tap opens the app by default | set `android.notification.click_action.type` to `3` (open the app); without it a tap reportedly does not reach the app, so `onOpened` never fires (verify) |
 
 The notification-opened event hands the client the intent extras and the
 message; the client merges them with the decoded `data` and routes on
-`type` / `link` exactly as for FCM. The 4 KB limit and the no-secrets rule apply
-to the whole message.
+`type` / `link` exactly as for FCM. The no-secrets rule applies to the whole
+message, and so does a size limit (4 KB assumed; verify Huawei's).
 
 ## Inbox row
 
