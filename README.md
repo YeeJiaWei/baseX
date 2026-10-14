@@ -67,9 +67,9 @@ into it.
 
 ## Claude Code plugin
 
-Skills for working with baseX in Claude Code (API service calls, auth store):
+A session-start hook that points Claude at the docs shipped with the resolved baseX version:
 
 ```
-/plugin marketplace add YeeJiaWei/baseX-plugin
+/plugin marketplace add YeeJiaWei/baseX-claude-plugin
 /plugin install basex@basex
 ```

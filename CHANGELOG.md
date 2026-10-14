@@ -10,7 +10,7 @@
     - `NotificationLinks` router for push and inbox taps: path patterns, handler classes, guards, event routes, cold-start hold (see `doc/notifications/notification_links.md`)
     - `PushPayload`: the fixed `payload` object (`type`, `link`, `delivery_id`, `params`) read from push data (see `doc/notifications/notification_payload.md`)
     - Getting-started guide for notifications (`doc/notifications/getting_started.md`)
-    - Claude Code plugin ([baseX-plugin](https://github.com/YeeJiaWei/baseX-plugin)): `basex-api-service` and `basex-auth` skills plus a baseX detection hook
+    - Claude Code plugin ([baseX-claude-plugin](https://github.com/YeeJiaWei/baseX-claude-plugin)): `basex-api-service` and `basex-auth` skills plus a baseX detection hook
 - Moved
     - Development continues at [YeeJiaWei/baseX](https://github.com/YeeJiaWei/baseX); `haolun1996/baseX` stays at `0.6.x`
 - Bug Fixes
