@@ -64,8 +64,10 @@ below. The key name is a constant in baseX and cannot be configured.
 |---|---|---|---|---|
 | `type` | yes, for event routing | string | `UPPER_SNAKE` event type, e.g. `ORDER_SHIPPED` | event routes, `lastMessageType` |
 | `link` | optional | string | plain path, e.g. `orders/1042` (no scheme; a leading `/` is allowed) | path routes, used when no event route handles the type |
-| `delivery_id` | optional | string | unique per device send | tap dedup and `onReceipt` (the default `PushHandler.messageKey`) |
+| `delivery_id` | optional | string | unique per device send | tap dedup (the default `PushHandler.messageKey`) |
 | `params` | optional | object | values with their real JSON types, e.g. `{"order_id": 1042}` | event routes (`require`, `aliases`) |
+
+`type`, `link` and `delivery_id` must be JSON strings: a number is dropped with a warning, so a numeric `delivery_id` silently loses tap dedup.
 
 ### Rules
 

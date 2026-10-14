@@ -110,9 +110,7 @@ class AppPushHandler extends PushHandler {
   void onReceipt(PushMessage message, PushReceipt receipt) {
     // receipt is received (foreground arrival) or opened (tap); report to the backend.
   }
-
-  @override
-  }
+}
 ```
 
 - `registerToken` runs when a token is first obtained, when it rotates, when the
