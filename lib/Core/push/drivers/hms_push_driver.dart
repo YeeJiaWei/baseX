@@ -29,7 +29,7 @@ class HmsPushDriver implements PushDriver {
   final HmsPushClient _client;
 
   String? _lastToken;
-  bool _fetchingToken = false;
+  Future<String?>? _tokenRequest;
 
   Future<void> _registerBackgroundHandler(
     void Function(RemoteMessage message) handler,
@@ -62,24 +62,38 @@ class HmsPushDriver implements PushDriver {
   @override
   Future<void> setForegroundPresentation() async {}
 
+  /// Concurrent callers share one request; its subscription is always cancelled.
   @override
-  Future<String?> getToken() async {
-    _fetchingToken = true;
-    try {
-      final tokens = _client.tokenStream;
-      final firstToken = tokens
-          .firstWhere((token) => token.isNotEmpty)
-          .timeout(tokenTimeout);
-      _client.requestToken();
-      final token = await firstToken;
-      _lastToken = token;
-      return token;
-    } on TimeoutException {
+  Future<String?> getToken() => _tokenRequest ??= _requestToken().whenComplete(
+    () => _tokenRequest = null,
+  );
+
+  Future<String?> _requestToken() async {
+    final result = Completer<String?>();
+    final subscription = _client.tokenStream.listen(
+      (token) {
+        if (token.isEmpty || result.isCompleted) return;
+        _lastToken = token;
+        result.complete(token);
+      },
+      onError: (Object error) {
+        XLogger.error(
+          'HMS token fetch failed: $error',
+          className: 'HmsPushDriver',
+        );
+        if (!result.isCompleted) result.complete(null);
+      },
+    );
+    final timeout = Timer(tokenTimeout, () {
       XLogger.warning(
         'HMS token not received within $tokenTimeout',
         className: 'HmsPushDriver',
       );
-      return null;
+      if (!result.isCompleted) result.complete(null);
+    });
+    try {
+      _client.requestToken();
+      return await result.future;
     } catch (error) {
       XLogger.error(
         'HMS token fetch failed: $error',
@@ -87,17 +101,18 @@ class HmsPushDriver implements PushDriver {
       );
       return null;
     } finally {
-      _fetchingToken = false;
+      timeout.cancel();
+      await subscription.cancel();
     }
   }
 
   @override
   Future<void> deleteToken() => _client.deleteToken();
 
-  /// Tokens that [getToken] is already handing back, or that repeat the last one, are skipped.
+  /// Tokens that an in-flight [getToken] is handing back, or that repeat the last one, are skipped.
   @override
   Stream<String> get onTokenRefresh => _client.tokenStream.where((token) {
-    if (token.isEmpty || _fetchingToken || token == _lastToken) {
+    if (token.isEmpty || _tokenRequest != null || token == _lastToken) {
       return false;
     }
     _lastToken = token;

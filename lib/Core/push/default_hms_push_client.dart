@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -7,9 +8,36 @@ import 'package:baseX/Core/push/hms_push_client.dart';
 import 'package:baseX/Core/push/hms_raw_message.dart';
 
 /// [HmsPushClient] backed by the `huawei_push` plugin and `flutter_local_notifications`.
+///
+/// The plugin keeps one handler per event channel, so a second subscription replaces the
+/// first and any cancel silences the channel. Each plugin stream is therefore subscribed
+/// at most once, lazily, and never cancelled; every getter fans out from that single subscription.
 class DefaultHmsPushClient implements HmsPushClient {
+  /// The sources default to the `Push.*` streams; tests pass fakes.
+  DefaultHmsPushClient({
+    Stream<String> Function()? tokenSource,
+    Stream<RemoteMessage> Function()? dataSource,
+    Stream<dynamic> Function()? openedSource,
+  }) {
+    _tokens = _SharedStream<String>(tokenSource ?? () => Push.getTokenStream);
+    _data = _SharedStream<HmsRawMessage>(
+      () => (dataSource ?? () => Push.onMessageReceivedStream)().map(
+        _fromRemoteMessage,
+      ),
+    );
+    _opened = _SharedStream<HmsRawMessage>(
+      () => (openedSource ?? () => Push.onNotificationOpenedApp)().map(
+        _fromOpenedEvent,
+      ),
+    );
+  }
+
   /// Token scope for the app's own AppGallery Connect project.
   static const String tokenScope = '';
+
+  late final _SharedStream<String> _tokens;
+  late final _SharedStream<HmsRawMessage> _data;
+  late final _SharedStream<HmsRawMessage> _opened;
 
   AndroidFlutterLocalNotificationsPlugin? get _androidNotifications =>
       FlutterLocalNotificationsPlugin()
@@ -21,18 +49,16 @@ class DefaultHmsPushClient implements HmsPushClient {
   void requestToken() => Push.getToken(tokenScope);
 
   @override
-  Stream<String> get tokenStream => Push.getTokenStream;
+  Stream<String> get tokenStream => _tokens.stream;
 
   @override
   Future<void> deleteToken() => Push.deleteToken(tokenScope);
 
   @override
-  Stream<HmsRawMessage> get dataMessages =>
-      Push.onMessageReceivedStream.map(_fromRemoteMessage);
+  Stream<HmsRawMessage> get dataMessages => _data.stream;
 
   @override
-  Stream<HmsRawMessage> get notificationOpened =>
-      Push.onNotificationOpenedApp.map(_fromOpenedEvent);
+  Stream<HmsRawMessage> get notificationOpened => _opened.stream;
 
   @override
   Future<HmsRawMessage?> initialNotification() async {
@@ -73,5 +99,22 @@ class DefaultHmsPushClient implements HmsPushClient {
       body: notification is Map ? notification['body']?.toString() : null,
       extras: extras is Map ? Map<String, dynamic>.from(extras) : const {},
     );
+  }
+}
+
+/// Subscribes to [_source] on first access and re-broadcasts it; the subscription is never cancelled.
+class _SharedStream<T> {
+  _SharedStream(this._source);
+
+  final Stream<T> Function() _source;
+  final StreamController<T> _controller = StreamController<T>.broadcast();
+  bool _subscribed = false;
+
+  Stream<T> get stream {
+    if (!_subscribed) {
+      _subscribed = true;
+      _source().listen(_controller.add, onError: _controller.addError);
+    }
+    return _controller.stream;
   }
 }
