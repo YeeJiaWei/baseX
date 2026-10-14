@@ -1,5 +1,7 @@
 # Push — `PushNotifications`
 
+New app? Start with the [getting-started guide](getting_started.md).
+
 Push plumbing every baseX app repeats — permission, token lifecycle, foreground /
 background / tap listeners, cold-start handling, dedup — lives in baseX. The app
 supplies only what is domain-specific through a `PushHandler`.

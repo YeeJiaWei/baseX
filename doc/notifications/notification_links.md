@@ -1,5 +1,7 @@
 # Notification Links — `NotificationLinks`
 
+New app? Start with the [getting-started guide](getting_started.md).
+
 One router for the links that notifications carry: push taps and in-app inbox
 rows. The app declares routes as path patterns instead of hand-parsing
 `uri.pathSegments`, and puts any non-trivial logic in handler classes.
