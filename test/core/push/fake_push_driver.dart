@@ -4,6 +4,9 @@ import 'package:baseX/Core/index.dart';
 
 /// Scriptable [PushDriver] with no platform channels.
 class FakePushDriver implements PushDriver {
+  @override
+  PushProvider provider = PushProvider.fcm;
+
   PushPermission permission = PushPermission.notDetermined;
   PushPermission permissionAfterRequest = PushPermission.authorized;
   String? token = 'token-1';

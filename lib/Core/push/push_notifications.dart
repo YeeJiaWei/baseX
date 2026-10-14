@@ -11,13 +11,16 @@ import 'package:baseX/Core/push/push_handler.dart';
 import 'package:baseX/Core/push/push_message.dart';
 import 'package:baseX/Core/push/push_permission.dart';
 import 'package:baseX/Core/push/push_platform.dart';
+import 'package:baseX/Core/push/push_provider.dart';
 import 'package:baseX/Core/push/push_receipt.dart';
+import 'package:baseX/Core/push/push_registration.dart';
 
 /// Push plumbing every app repeats: permission, token lifecycle, listeners and dedup.
 class PushNotifications extends GetxService with WidgetsBindingObserver {
   PushNotifications._(this._driver, this._handler);
 
   static const String tokenKey = 'push_token';
+  static const String tokenProviderKey = 'push_token_provider';
   static const String promptShownKey = 'push_prompt_shown';
   static const Duration unregisterTimeout = Duration(seconds: 5);
 
@@ -60,6 +63,7 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
   final Set<String> _handledKeys = {};
 
   String? _token;
+  Future<String?>? _storedTokenRead;
 
   /// The current device token; null until one has been fetched.
   String? get token => _token;
@@ -139,7 +143,7 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
           _token ?? await _loadStoredToken() ?? await _driver.getToken();
       if (currentToken == null) return;
       await _persistToken(currentToken);
-      await _handler.registerToken(currentToken, _platform, permission.value);
+      await _handler.registerToken(_registrationFor(currentToken));
     } catch (error) {
       XLogger.error('push registration failed: $error',
           className: 'PushNotifications');
@@ -152,7 +156,7 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
       final currentToken = _token ?? await _loadStoredToken();
       if (currentToken == null) return;
       await _handler
-          .unregisterToken(currentToken)
+          .unregisterToken(currentToken, _driver.provider)
           .timeout(unregisterTimeout);
     } on TimeoutException {
       XLogger.error('push unregister timed out after $unregisterTimeout',
@@ -165,6 +169,13 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
 
   PushPlatform get _platform =>
       Platform.isIOS ? PushPlatform.ios : PushPlatform.android;
+
+  PushRegistration _registrationFor(String deviceToken) => PushRegistration(
+        token: deviceToken,
+        platform: _platform,
+        provider: _driver.provider,
+        permission: permission.value,
+      );
 
   Future<void> _guard(String step, Future<void> Function() action) async {
     try {
@@ -207,22 +218,50 @@ class PushNotifications extends GetxService with WidgetsBindingObserver {
   Future<void> _applyToken(String newToken) async {
     final previous = _token ?? await _loadStoredToken();
     await _persistToken(newToken);
-    await _handler.registerToken(newToken, _platform, permission.value);
+    await _handler.registerToken(_registrationFor(newToken));
     if (previous != null && previous != newToken) {
       await _guard('unregister previous token',
-          () => _handler.unregisterToken(previous));
+          () => _handler.unregisterToken(previous, _driver.provider));
     }
   }
 
-  Future<String?> _loadStoredToken() async {
+  /// Concurrent callers share one read so a stale token is discarded only once.
+  Future<String?> _loadStoredToken() =>
+      _storedTokenRead ??= _readStoredToken().whenComplete(
+        () => _storedTokenRead = null,
+      );
+
+  /// Returns the stored token when it belongs to the bound provider; otherwise unregisters and drops it.
+  Future<String?> _readStoredToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return _token = prefs.getString(tokenKey);
+    final stored = prefs.getString(tokenKey);
+    if (stored == null) return _token = null;
+
+    final storedProvider = _storedProvider(prefs);
+    if (storedProvider == _driver.provider) return _token = stored;
+
+    await prefs.remove(tokenKey);
+    await prefs.remove(tokenProviderKey);
+    _token = null;
+    await _guard(
+      'unregister previous provider token',
+      () => _handler
+          .unregisterToken(stored, storedProvider)
+          .timeout(unregisterTimeout),
+    );
+    return null;
   }
+
+  /// Tokens stored before the provider was recorded came from FCM.
+  PushProvider _storedProvider(SharedPreferences prefs) =>
+      PushProvider.values.asNameMap()[prefs.getString(tokenProviderKey)] ??
+      PushProvider.fcm;
 
   Future<void> _persistToken(String newToken) async {
     _token = newToken;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(tokenKey, newToken);
+    await prefs.setString(tokenProviderKey, _driver.provider.name);
   }
 
   void _publishType(PushMessage message) {
