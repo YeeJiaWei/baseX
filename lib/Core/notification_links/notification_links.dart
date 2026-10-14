@@ -40,6 +40,8 @@ class NotificationLinks {
   final NotificationLinkConfig config;
   final List<_RouteEntry> _routes;
 
+  static final RegExp _schemePrefix = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*://');
+
   bool _held = false;
   Future<bool> Function()? _pending;
 
@@ -93,7 +95,20 @@ class NotificationLinks {
 
   /// Queues [link] with its source and data without a global hold; it stays queued until [release] or [discard].
   void holdLink(LinkMatch link) {
-    _pending = () => _handleUri(link.uri, link.source, link.eventParams);
+    final eventType = link.eventType;
+    if (eventType == null) {
+      _pending = () => _handleUri(link.uri, link.source, link.eventParams);
+      return;
+    }
+
+    final syntheticUri = Uri(path: 'event/$eventType');
+    final originalLink = link.uri == syntheticUri ? null : link.uri.toString();
+    _pending = () => _handleEvent(
+          eventType,
+          link.eventParams,
+          originalLink,
+          link.source,
+        );
   }
 
   /// Ends the hold and runs the queued link, if any.
@@ -123,7 +138,7 @@ class NotificationLinks {
   Uri? _parseLink(String? link) {
     final trimmed = link?.trim() ?? '';
     if (trimmed.isEmpty) return null;
-    if (trimmed.contains('://')) return Uri.tryParse(trimmed);
+    if (_schemePrefix.hasMatch(trimmed)) return Uri.tryParse(trimmed);
     return Uri.tryParse('/${trimmed.replaceFirst(RegExp(r'^/+'), '')}');
   }
 
