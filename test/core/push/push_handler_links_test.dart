@@ -16,9 +16,6 @@ class _ShopLinks extends NotificationLinkConfig {
   final List<String> routedPaths;
 
   @override
-  String get scheme => 'shop';
-
-  @override
   List<LinkHandler> get routes => [
         LinkRoute('help/**', (link) async => routedPaths.add(link.uri.toString())),
       ];
@@ -39,11 +36,41 @@ void main() {
     NotificationLinks.bind(_ShopLinks(routedOrderIds, []));
 
     _RoutingOnlyPushHandler().onOpened(
-      const PushMessage(type: 'ORDER_SHIPPED', data: {'type': 'ORDER_SHIPPED', 'order_id': '1042'}),
+      const PushMessage(
+        payload: PushPayload(type: 'ORDER_SHIPPED', params: {'order_id': 1042}),
+      ),
     );
     await pumpEventQueue();
 
     expect(routedOrderIds, [1042]);
+  });
+
+  test('default onOpened routes numeric string params too', () async {
+    final routedOrderIds = <int>[];
+    NotificationLinks.bind(_ShopLinks(routedOrderIds, []));
+
+    _RoutingOnlyPushHandler().onOpened(
+      const PushMessage(
+        payload: PushPayload(type: 'ORDER_SHIPPED', params: {'order_id': '7'}),
+      ),
+    );
+    await pumpEventQueue();
+
+    expect(routedOrderIds, [7]);
+  });
+
+  test('default messageKey prefers the delivery id over the message id', () {
+    final handler = _RoutingOnlyPushHandler();
+
+    expect(
+      handler.messageKey(const PushMessage(
+        id: 'm1',
+        payload: PushPayload(deliveryId: 'd1'),
+      )),
+      'd1',
+    );
+    expect(handler.messageKey(const PushMessage(id: 'm1')), 'm1');
+    expect(handler.messageKey(const PushMessage()), isNull);
   });
 
   test('default onOpened falls back to the payload link when no event route matches', () async {
@@ -51,10 +78,12 @@ void main() {
     NotificationLinks.bind(_ShopLinks([], routedPaths));
 
     _RoutingOnlyPushHandler().onOpened(
-      const PushMessage(type: 'HELP_REPLY', data: {'type': 'HELP_REPLY', 'link': 'shop://help/faq'}),
+      const PushMessage(
+        payload: PushPayload(type: 'HELP_REPLY', link: 'help/faq'),
+      ),
     );
     await pumpEventQueue();
 
-    expect(routedPaths, ['shop://help/faq']);
+    expect(routedPaths, ['/help/faq']);
   });
 }

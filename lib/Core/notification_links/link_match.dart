@@ -11,7 +11,7 @@ class LinkMatch {
     this.source = LinkSource.inbox,
     this.params = const {},
     this.rest = const [],
-    this.data = const {},
+    this.eventParams = const {},
   });
 
   /// Builds the match [pattern] would produce for [uri]; for tests.
@@ -19,7 +19,7 @@ class LinkMatch {
     Uri uri, {
     required String pattern,
     LinkSource source = LinkSource.inbox,
-    Map<String, dynamic> data = const {},
+    Map<String, dynamic> eventParams = const {},
   }) {
     final matched =
         LinkPattern.parse(pattern).match(LinkPattern.pathSegmentsOf(uri));
@@ -35,7 +35,7 @@ class LinkMatch {
       source: source,
       params: matched.params,
       rest: matched.rest,
-      data: data,
+      eventParams: eventParams,
     );
   }
 
@@ -46,8 +46,8 @@ class LinkMatch {
   /// Segments captured by a trailing `**`.
   final List<String> rest;
 
-  /// Push payload when the link came from an event, else empty.
-  final Map<String, dynamic> data;
+  /// The payload `params` with their JSON types when the link came from an event, else empty; [params] holds path params.
+  final Map<String, dynamic> eventParams;
 
   /// The query string parameters.
   Map<String, String> get query => uri.queryParameters;

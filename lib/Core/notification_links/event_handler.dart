@@ -7,10 +7,10 @@ abstract class EventHandler {
   /// Push types this handler serves.
   Set<String> get types;
 
-  /// Fields that must be present and valid, else the handler is skipped.
+  /// Payload params that must be present and valid, else the handler is skipped.
   Map<String, LinkParam> get require => const {};
 
-  /// Older key names for the same field.
+  /// Older param names for the same value.
   Map<String, List<String>> get aliases => const {};
 
   /// Checks run before [handle], in order.

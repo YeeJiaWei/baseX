@@ -17,12 +17,17 @@ abstract class PushHandler {
 
   /// Called on a tap on a push: app running, in background, or cold start; routes it through [NotificationLinks] when bound.
   void onOpened(PushMessage message) {
-    NotificationLinks.maybeInstance?.handleEvent(message.type ?? '', message.data);
+    NotificationLinks.maybeInstance?.handleEvent(
+      message.payload.type ?? '',
+      params: message.payload.params,
+      link: message.payload.link,
+    );
   }
 
   /// Called with each delivery stage of a message.
   void onReceipt(PushMessage message, PushReceipt receipt) {}
 
-  /// Key used to drop repeat taps; override when the backend sends its own delivery id.
-  String? messageKey(PushMessage message) => message.id;
+  /// Key used to drop repeat taps: the payload delivery id, else the platform message id.
+  String? messageKey(PushMessage message) =>
+      message.payload.deliveryId ?? message.id;
 }
