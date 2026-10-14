@@ -3,7 +3,7 @@ import 'package:baseX/base_x.dart';
 /// Laravel-style service provider.
 ///
 /// A provider groups the bootstrap logic for one concern (theme, analytics,
-/// deep links, …) so the app's entry point stays thin. List providers via a
+/// notification links, …) so the app's entry point stays thin. List providers via a
 /// [ProviderConfig] on your AppConstant — the framework runs every [register]
 /// first, then every [boot], before building the app.
 ///
