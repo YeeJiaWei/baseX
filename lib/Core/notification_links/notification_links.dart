@@ -40,6 +40,8 @@ class NotificationLinks {
   final NotificationLinkConfig config;
   final List<_RouteEntry> _routes;
 
+  static final RegExp _schemePrefix = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*://');
+
   bool _held = false;
   Future<bool> Function()? _pending;
 
@@ -74,17 +76,18 @@ class NotificationLinks {
     return _handleLink(link, source);
   }
 
-  /// Routes a push payload by [type]; true when a route ran.
+  /// Routes a push event by [type] with its [params]; falls back to [link] when no event route handles it. True when a route ran.
   Future<bool> handleEvent(
-    String type,
-    Map<String, dynamic> data, {
+    String type, {
+    Map<String, dynamic> params = const {},
+    String? link,
     LinkSource source = LinkSource.push,
   }) {
     if (_held) {
-      _pending = () => _handleEvent(type, data, source);
+      _pending = () => _handleEvent(type, params, link, source);
       return Future.value(false);
     }
-    return _handleEvent(type, data, source);
+    return _handleEvent(type, params, link, source);
   }
 
   /// Queues incoming links instead of running them, until [release] or [discard].
@@ -92,7 +95,20 @@ class NotificationLinks {
 
   /// Queues [link] with its source and data without a global hold; it stays queued until [release] or [discard].
   void holdLink(LinkMatch link) {
-    _pending = () => _handleUri(link.uri, link.source, link.data);
+    final eventType = link.eventType;
+    if (eventType == null) {
+      _pending = () => _handleUri(link.uri, link.source, link.eventParams);
+      return;
+    }
+
+    final syntheticUri = Uri(path: 'event/$eventType');
+    final originalLink = link.uri == syntheticUri ? null : link.uri.toString();
+    _pending = () => _handleEvent(
+          eventType,
+          link.eventParams,
+          originalLink,
+          link.source,
+        );
   }
 
   /// Ends the hold and runs the queued link, if any.
@@ -110,7 +126,7 @@ class NotificationLinks {
   }
 
   Future<bool> _handleLink(String? link, LinkSource source) async {
-    final uri = link == null ? null : Uri.tryParse(link.trim());
+    final uri = _parseLink(link);
     if (uri == null) {
       _reportUnknown(Uri());
       return false;
@@ -118,13 +134,22 @@ class NotificationLinks {
     return _handleUri(uri, source, const {});
   }
 
+  /// Plain paths (leading slash optional) and `scheme://path` links; null when blank or unparsable.
+  Uri? _parseLink(String? link) {
+    final trimmed = link?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+    if (_schemePrefix.hasMatch(trimmed)) return Uri.tryParse(trimmed);
+    return Uri.tryParse('/${trimmed.replaceFirst(RegExp(r'^/+'), '')}');
+  }
+
   Future<bool> _handleUri(
     Uri uri,
     LinkSource source,
-    Map<String, dynamic> data,
+    Map<String, dynamic> eventParams,
   ) async {
     try {
-      if (uri.scheme != config.scheme) {
+      final configuredScheme = config.scheme;
+      if (uri.hasScheme && uri.scheme != configuredScheme) {
         _reportUnknown(uri);
         return false;
       }
@@ -139,7 +164,7 @@ class NotificationLinks {
           source: source,
           params: matched.params,
           rest: matched.rest,
-          data: data,
+          eventParams: eventParams,
         );
         final handled = await _attempt(
           link: link,
@@ -177,24 +202,26 @@ class NotificationLinks {
 
   Future<bool> _handleEvent(
     String type,
-    Map<String, dynamic> data,
+    Map<String, dynamic> eventParams,
+    String? link,
     LinkSource source,
   ) async {
-    final linkValue = data[config.linkKey];
-    final uri = _eventUri(type, linkValue);
+    final linkUri = _parseLink(link);
+    final uri = linkUri ?? Uri(path: 'event/$type');
 
     try {
       for (final handler in config.events) {
         if (!handler.types.contains(type)) continue;
 
-        final params = _eventParams(handler, data);
+        final params = _requiredParams(handler, eventParams);
         if (params == null) continue;
 
         final event = LinkMatch(
           uri: uri,
           source: source,
           params: params,
-          data: data,
+          eventParams: eventParams,
+          eventType: type,
         );
         final handled = await _attempt(
           link: event,
@@ -210,31 +237,21 @@ class NotificationLinks {
       return false;
     }
 
-    if (linkValue is String && linkValue.trim().isNotEmpty) {
-      final linkUri = Uri.tryParse(linkValue.trim());
-      if (linkUri != null) return _handleUri(linkUri, source, data);
-    }
+    if (linkUri != null) return _handleUri(linkUri, source, eventParams);
 
     _reportUnknown(uri);
     return false;
   }
 
-  Uri _eventUri(String type, Object? linkValue) {
-    final trimmedLink = linkValue is String ? linkValue.trim() : '';
-    final fromLink = trimmedLink.isEmpty ? null : Uri.tryParse(trimmedLink);
-    return fromLink ??
-        Uri(scheme: config.scheme, host: 'event', pathSegments: [type]);
-  }
-
-  Map<String, String>? _eventParams(
+  Map<String, String>? _requiredParams(
     EventHandler handler,
-    Map<String, dynamic> data,
+    Map<String, dynamic> eventParams,
   ) {
     final params = <String, String>{};
     for (final entry in handler.require.entries) {
       final keys = [entry.key, ...?handler.aliases[entry.key]];
       final value = keys
-          .map((key) => data[key])
+          .map((key) => eventParams[key])
           .firstWhere((candidate) => candidate != null, orElse: () => null);
       if (!entry.value.accepts(value)) return null;
       params[entry.key] = value.toString();

@@ -280,10 +280,10 @@ void main() {
   });
 
   test('dedup drops a repeat tap with the same key', () async {
-    driver.initialMessage = const PushMessage(id: 'm1', type: 'chat');
+    driver.initialMessage = const PushMessage(id: 'm1', payload: PushPayload(type: 'chat'));
     await bind();
 
-    driver.openedController.add(const PushMessage(id: 'm1', type: 'chat'));
+    driver.openedController.add(const PushMessage(id: 'm1', payload: PushPayload(type: 'chat')));
     await settle();
 
     expect(handler.opened, hasLength(1));
@@ -303,7 +303,7 @@ void main() {
   test('foreground message reports received and calls onForeground', () async {
     await bind();
 
-    driver.foregroundController.add(const PushMessage(id: 'f1', type: 'chat'));
+    driver.foregroundController.add(const PushMessage(id: 'f1', payload: PushPayload(type: 'chat')));
     await settle();
 
     expect(handler.receipts, [PushReceipt.received]);
@@ -315,9 +315,9 @@ void main() {
     final seen = <String?>[];
     push.lastMessageType.listen(seen.add);
 
-    driver.foregroundController.add(const PushMessage(id: 'a', type: 'chat'));
+    driver.foregroundController.add(const PushMessage(id: 'a', payload: PushPayload(type: 'chat')));
     await settle();
-    driver.foregroundController.add(const PushMessage(id: 'b', type: 'chat'));
+    driver.foregroundController.add(const PushMessage(id: 'b', payload: PushPayload(type: 'chat')));
     await settle();
 
     expect(seen, [null, 'chat', null, 'chat']);

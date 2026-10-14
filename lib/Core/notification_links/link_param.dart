@@ -1,13 +1,13 @@
 import 'dart:core' as core;
 import 'dart:core';
 
-/// A validator for one event payload field.
+/// A validator for one payload param.
 class LinkParam {
   const LinkParam(this._isValid);
 
   final core.bool Function(core.String value) _isValid;
 
-  /// A whole number; numeric strings such as "1042" pass.
+  /// A whole number; real ints and numeric strings such as "1042" pass.
   static const LinkParam int = LinkParam(_isInt);
 
   /// Any non-empty value.

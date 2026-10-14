@@ -7,10 +7,11 @@ class _TestConfig extends NotificationLinkConfig {
     required this.routes,
     this.events = const [],
     this.guards = const [],
+    this.scheme = 'shop',
   });
 
   @override
-  String get scheme => 'shop';
+  final String? scheme;
   @override
   final List<LinkHandler> routes;
   @override
@@ -200,7 +201,7 @@ void main() {
       expect(seen.int('id'), 7);
       expect(seen.query, {'tab': '2'});
       expect(seen.source, LinkSource.push);
-      expect(seen.data, isEmpty);
+      expect(seen.eventParams, isEmpty);
     });
 
     test('wrong scheme goes to onUnknown and never navigates', () async {
@@ -211,6 +212,23 @@ void main() {
       expect(await links.handle('other://help'), isFalse);
       expect(calls, isEmpty);
       expect(config.unknown, hasLength(2));
+    });
+
+    test('plain paths route, with or without a leading slash', () async {
+      final links = bindRoutes(_TestConfig(routes: [record('orders/{id:int}')]));
+
+      expect(await links.handle('orders/7'), isTrue);
+      expect(await links.handle('/orders/8?tab=1'), isTrue);
+      expect(calls, hasLength(2));
+    });
+
+    test('without a scheme any scheme link goes to onUnknown', () async {
+      final config = _TestConfig(routes: [record('help/**')], scheme: null);
+      final links = bindRoutes(config);
+
+      expect(await links.handle('shop://help/faq'), isFalse);
+      expect(await links.handle('help/faq'), isTrue);
+      expect(config.unknown, hasLength(1));
     });
 
     test('no match and null link go to onUnknown', () async {
@@ -314,7 +332,7 @@ void main() {
       final config = _TestConfig(routes: const [])..throwOnUnknown = true;
       final links = bindRoutes(config);
 
-      expect(await links.handleEvent('NOPE', {}), isFalse);
+      expect(await links.handleEvent('NOPE'), isFalse);
       expect(await links.handle('shop://missing'), isFalse);
       expect(config.errors, hasLength(2));
       expect(config.errors.first, isA<StateError>());
@@ -327,12 +345,16 @@ void main() {
         events: [_OrderEvent(received)],
       ));
 
-      await links.handleEvent('ORDER_SHIPPED', {'order_id': '1', 'link': '  '});
+      await links.handleEvent(
+        'ORDER_SHIPPED',
+        params: {'order_id': '1'},
+        link: '  ',
+      );
 
-      expect(received.single.uri, Uri.parse('shop://event/ORDER_SHIPPED'));
+      expect(received.single.uri, Uri.parse('event/ORDER_SHIPPED'));
     });
 
-    test('require passes string ints and carries data', () async {
+    test('require passes numeric strings and carries params', () async {
       final received = <LinkMatch>[];
       final links = bindRoutes(_TestConfig(
         routes: const [],
@@ -340,12 +362,38 @@ void main() {
       ));
 
       final handled =
-          await links.handleEvent('ORDER_SHIPPED', {'order_id': '1042'});
+          await links.handleEvent('ORDER_SHIPPED', params: {'order_id': '1042'});
 
       expect(handled, isTrue);
       expect(received.single.int('order_id'), 1042);
-      expect(received.single.data['order_id'], '1042');
+      expect(received.single.eventParams['order_id'], '1042');
+      expect(received.single.eventType, 'ORDER_SHIPPED');
       expect(received.single.source, LinkSource.push);
+    });
+
+    test('require accepts real ints from JSON', () async {
+      final received = <LinkMatch>[];
+      final links = bindRoutes(_TestConfig(
+        routes: const [],
+        events: [_OrderEvent(received)],
+      ));
+
+      expect(
+        await links.handleEvent('ORDER_SHIPPED', params: {'order_id': 1042}),
+        isTrue,
+      );
+      expect(received.single.int('order_id'), 1042);
+      expect(received.single.eventParams['order_id'], 1042);
+    });
+
+    test('a plain-path link falls back after an event miss', () async {
+      late LinkMatch seen;
+      final links = bindRoutes(_TestConfig(
+        routes: [LinkRoute('orders/{id:int}', (link) async => seen = link)],
+      ));
+
+      expect(await links.handleEvent('X', link: 'orders/9'), isTrue);
+      expect(seen.int('id'), 9);
     });
 
     test('aliases supply older key names', () async {
@@ -355,7 +403,7 @@ void main() {
         events: [_OrderEvent(received)],
       ));
 
-      await links.handleEvent('ORDER_SHIPPED', {'orderId': 8});
+      await links.handleEvent('ORDER_SHIPPED', params: {'orderId': 8});
 
       expect(received.single.int('order_id'), 8);
     });
@@ -366,14 +414,14 @@ void main() {
           _TestConfig(routes: const [], events: [_OrderEvent(received)]);
       final links = bindRoutes(config);
 
-      expect(await links.handleEvent('ORDER_SHIPPED', {'order_id': 'abc'}),
+      expect(await links.handleEvent('ORDER_SHIPPED', params: {'order_id': 'abc'}),
           isFalse);
-      expect(await links.handleEvent('ORDER_SHIPPED', {}), isFalse);
+      expect(await links.handleEvent('ORDER_SHIPPED'), isFalse);
       expect(received, isEmpty);
       expect(config.unknown, hasLength(2));
     });
 
-    test('unmatched event falls back to the link key with data carried',
+    test('unmatched event falls back to the link with params carried',
         () async {
       late LinkMatch seen;
       final links = bindRoutes(_TestConfig(
@@ -382,16 +430,17 @@ void main() {
 
       final handled = await links.handleEvent(
         'SOMETHING_ELSE',
-        {'link': 'shop://orders/3', 'extra': 'x'},
+        params: {'extra': 'x'},
+        link: 'shop://orders/3',
       );
 
       expect(handled, isTrue);
       expect(seen.int('id'), 3);
-      expect(seen.data['extra'], 'x');
+      expect(seen.eventParams['extra'], 'x');
       expect(seen.source, LinkSource.push);
     });
 
-    test('closure event route with guards and a custom link key', () async {
+    test('closure event route with guards ', () async {
       final links = bindRoutes(_TestConfig(
         routes: const [],
         events: [
@@ -403,7 +452,7 @@ void main() {
         ],
       ));
 
-      expect(await links.handleEvent('PLAN_EXPIRED', {}), isTrue);
+      expect(await links.handleEvent('PLAN_EXPIRED'), isTrue);
       expect(calls, ['guard', 'expired']);
     });
 
@@ -417,8 +466,17 @@ void main() {
       );
       final links = bindRoutes(config);
 
-      expect(await links.handleEvent('X', {}), isFalse);
+      expect(await links.handleEvent('X'), isFalse);
       expect(config.errors, hasLength(1));
+    });
+  });
+
+  group('plain path detection', () {
+    test('a plain path with :// only in its query stays a plain path', () async {
+      final links = bindRoutes(_TestConfig(routes: [record('orders/{id:int}')]));
+
+      expect(await links.handle('orders/1?next=https://x'), isTrue);
+      expect(calls, ['orders/{id:int} /orders/1']);
     });
   });
 
@@ -446,7 +504,7 @@ void main() {
       ));
 
       links.hold();
-      expect(await links.handleEvent('X', {}), isFalse);
+      expect(await links.handleEvent('X'), isFalse);
       await links.release();
 
       expect(calls, ['x']);
@@ -475,7 +533,7 @@ void main() {
       expect(calls, ['b ', 'a ']);
     });
 
-    test('holdLink replays with the original source and data', () async {
+    test('holdLink replays with the original source and event params', () async {
       final received = <LinkMatch>[];
       final links = bindRoutes(_TestConfig(routes: [
         LinkRoute('a', (link) async => received.add(link)),
@@ -484,12 +542,55 @@ void main() {
       links.holdLink(LinkMatch(
         uri: Uri.parse('shop://a'),
         source: LinkSource.push,
-        data: const {'order_id': '7'},
+        eventParams: const {'order_id': '7'},
       ));
       await links.release();
 
       expect(received.single.source, LinkSource.push);
-      expect(received.single.data, {'order_id': '7'});
+      expect(received.single.eventParams, {'order_id': '7'});
+    });
+
+    test('a held event match with a link re-runs the event route on release',
+        () async {
+      final received = <LinkMatch>[];
+      final links = bindRoutes(_TestConfig(
+        routes: [record('orders/{id:int}')],
+        events: [_OrderEvent(received)],
+      ));
+
+      links.holdLink(LinkMatch(
+        uri: Uri.parse('/orders/3'),
+        source: LinkSource.push,
+        eventParams: const {'order_id': 9},
+        eventType: 'ORDER_SHIPPED',
+      ));
+      await links.release();
+
+      expect(received.single.eventType, 'ORDER_SHIPPED');
+      expect(received.single.source, LinkSource.push);
+      expect(received.single.int('order_id'), 9);
+      expect(calls, isEmpty);
+    });
+
+    test('a held event match without a link re-runs the event route on release',
+        () async {
+      final received = <LinkMatch>[];
+      final config = _TestConfig(
+        routes: const [],
+        events: [_OrderEvent(received)],
+      );
+      final links = bindRoutes(config);
+
+      links.holdLink(LinkMatch(
+        uri: Uri(path: 'event/ORDER_SHIPPED'),
+        source: LinkSource.push,
+        eventParams: const {'order_id': 9},
+        eventType: 'ORDER_SHIPPED',
+      ));
+      await links.release();
+
+      expect(received.single.eventType, 'ORDER_SHIPPED');
+      expect(config.unknown, isEmpty);
     });
 
     test('release with nothing queued does nothing', () async {

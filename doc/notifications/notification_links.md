@@ -7,20 +7,22 @@ rows. The app declares routes as path patterns instead of hand-parsing
 `uri.pathSegments`, and puts any non-trivial logic in handler classes.
 
 **Scope: notifications only.** These links are written by the app's own
-backend and reach the app only through a notification. They are not public
-deep links — nothing here registers a URL scheme or universal link with the
-OS, so a link shared outside the app opens nothing. Public deep links are a
-separate feature with their own allow-list and abuse checks.
+backend and reach the app only through a notification. Nothing here registers
+a URL scheme or universal link with the OS, so a link shared outside the app
+opens nothing. Opening the app from outside links is a separate feature with
+its own allow-list and abuse checks.
 
 ```
   push tap (PushNotifications) ---+
                                   +--> NotificationLinks.handle(link | event)
   inbox row tap ------------------+          |
                                              v
-                           1. event routes: match on push `type` (+ data)
-                                             | no match -> use data[linkKey]
+                           1. event routes: match on payload `type`
+                              (`require` / `aliases` read payload `params`)
+                                             | no match -> use payload `link`
                                              v
-                           2. scheme check (the app's own scheme only)
+                           2. link check: plain path, or `scheme://path`
+                              when the config sets a scheme
                                              |
                                              v
                            3. path routes, most specific first:
@@ -34,23 +36,21 @@ The fields the backend must send are in
 [notification_payload.md](notification_payload.md).
 
 The examples below use a generic shop app — orders, chat, settings — with
-links such as `shop://orders/42` and push types such as `ORDER_SHIPPED`.
+links such as `orders/42` and push types such as `ORDER_SHIPPED`.
 
 ## Contract
 
 ```dart
 abstract class NotificationLinkConfig {
-  /// The scheme the backend writes links with, e.g. 'shop'.
-  String get scheme;
-
-  /// Payload key holding the link inside a push's data.
-  String get linkKey => 'link';
+  /// Optional scheme links may also carry, e.g. 'shop' for `shop://orders/42`.
+  /// Plain paths (`orders/42`) always route.
+  String? get scheme => null;
 
   /// Path routes — closures (`LinkRoute`) and handler classes mixed freely.
   /// Order does not matter — precedence decides (see below).
   List<LinkHandler> get routes;
 
-  /// Push-payload routes, tried before falling back to `data[linkKey]`.
+  /// Push-payload routes, tried before falling back to the payload link.
   List<EventHandler> get events => const [];
 
   /// Guards run before every route's own guards; a route opts out with
@@ -70,11 +70,16 @@ class NotificationLinks {
   static NotificationLinks get instance;
 
   Future<bool> handle(String? link, {LinkSource source = LinkSource.inbox});  // true when a route ran
-  Future<bool> handleEvent(String type, Map<String, dynamic> data);
+  Future<bool> handleEvent(
+    String type, {
+    Map<String, dynamic> params = const {},
+    String? link,
+    LinkSource source = LinkSource.push,
+  });  // true when an event route or the link fallback ran
 
   // Cold-start hold (see below)
   void hold();
-  void holdLink(LinkMatch link);   // queue one link, keeping its source and data, without a global hold (used by guards)
+  void holdLink(LinkMatch link);   // queue one link, keeping its source and event params, without a global hold (used by guards)
   Future<void> release();
   void discard();
 }
@@ -114,9 +119,14 @@ are a configuration error, thrown at `bind()` (not at link time).
 
 ### Link format
 
-The host is the first path segment: `shop://orders/42` resolves to the path
-`orders/42`. A link with any other scheme goes to `onUnknown` — the router
-never opens `https://` or another app's scheme.
+A link is a plain path: `orders/42`, with or without a leading `/`. The query
+string is allowed (`orders/42?tab=2`).
+
+`scheme` is optional. When the config leaves it null, any link written as
+`x://…` goes to `onUnknown`. When it is set (say `'shop'`), both `orders/42` and
+`shop://orders/42` route — the host is the first path segment — and a link with
+any other scheme goes to `onUnknown`. The router never opens `https://` or
+another app's scheme.
 
 ## Routes — closure or handler class
 
@@ -176,7 +186,8 @@ the action doesn't read it). It gives:
 | `link.rest` | `List<String>` — segments captured by `**` |
 | `link.query` | `Map<String, String>` — query string |
 | `link.uri` | the original `Uri` |
-| `link.data` | push payload when the link came from an event, else empty |
+| `link.eventParams` | payload `params` with their JSON types when the link came from an event, else empty (`link.params` holds path params) |
+| `link.eventType` | payload `type` when the link came from an event, else null |
 | `link.source` | `LinkSource.push` or `.inbox` |
 
 ### 1. Closure — page push
@@ -319,7 +330,7 @@ class SignedInGuard extends LinkGuard {
 ```
 
 A link queued with `holdLink` stays queued until `release()` or `discard()`;
-it replays with its original `source` and `data`.
+it replays with its original `source` and `eventParams`.
 
 ### Feature guard — upgrade prompt instead of a dead page
 
@@ -370,21 +381,26 @@ route that must work signed out sets `public: true`.
 
 ## Event routes
 
-Push payloads carry a `type` and data. An event handler runs first; when none
-matches, the router falls back to `data[linkKey]` through `handle()`. Same two
-styles as path routes:
+A push payload carries a `type`, optional `params` and an optional `link`
+(see [notification_payload.md](notification_payload.md)). An event handler runs
+first; when none handles the type, the router falls back to the payload `link`
+through `handle()`. Same two styles as path routes:
 
 ```dart
 abstract class EventHandler {
   Set<String> get types;
-  Map<String, LinkParam> get require => const {};        // skipped unless present and valid
-  Map<String, List<String>> get aliases => const {};     // older key names for the same field
+  Map<String, LinkParam> get require => const {};        // payload params; skipped unless present and valid
+  Map<String, List<String>> get aliases => const {};     // older param names for the same value
   List<LinkGuard> get guards => const [];
   bool get public => false;
   Future<bool> canHandle(LinkMatch event) async => true;
   Future<void> handle(LinkMatch event);
 }
 ```
+
+`LinkParam.int` accepts a real int (`1042`) and a numeric string (`"1042"`).
+In `handle`, `event.int('order_id')` reads a required param, and
+`event.eventParams` holds every payload param with its original type.
 
 Closure (`EventRoute` also takes `public:`, default `false`, like `LinkRoute`):
 
@@ -412,7 +428,7 @@ class OrderEvent extends EventHandler {
   @override
   Future<void> handle(LinkMatch event) async {
     // A cancelled order has nothing left to act on — say so instead of opening it.
-    if (event.data['type'] == 'ORDER_CANCELLED') {
+    if (event.eventType == 'ORDER_CANCELLED') {
       AppSnackbar.info('Order #${event.int('order_id')} was cancelled.');
       return;
     }
@@ -435,7 +451,7 @@ A handler is a plain class, so it is tested without the router:
 test('payment link opens the receipt when already paid', () async {
   Get.put<PaymentService>(FakePaymentService(paid: true));
   final link = LinkMatch.fromUri(
-    Uri.parse('shop://payments/REF-1'),
+    Uri.parse('payments/REF-1'),
     pattern: 'payments/{reference}',
   );
 
@@ -465,9 +481,6 @@ once the app is running.
 
 ```dart
 class AppNotificationLinks extends NotificationLinkConfig {
-  @override
-  String get scheme => 'shop';
-
   @override
   List<LinkGuard> get guards => [SignedInGuard()];
 

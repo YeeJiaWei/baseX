@@ -9,6 +9,7 @@ import 'package:baseX/Core/push/hms_push_client.dart';
 import 'package:baseX/Core/push/hms_raw_message.dart';
 import 'package:baseX/Core/push/push_driver.dart';
 import 'package:baseX/Core/push/push_message.dart';
+import 'package:baseX/Core/push/push_payload.dart';
 import 'package:baseX/Core/push/push_permission.dart';
 import 'package:baseX/Core/push/push_provider.dart';
 
@@ -136,9 +137,9 @@ class HmsPushDriver implements PushDriver {
     final data = _buildData(raw);
     return PushMessage(
       id: raw.id,
-      type: data['type']?.toString(),
       title: raw.title,
       body: raw.body,
+      payload: PushPayload.fromData(data),
       data: data,
     );
   }
