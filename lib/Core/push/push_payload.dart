@@ -69,6 +69,8 @@ class PushPayload {
   static Map<String, dynamic> _params(Object? value) {
     if (value == null) return const {};
     if (value is Map) return _normalizeMap(value);
+    // PHP backends encode an empty object as []; treat it as no params.
+    if (value is List && value.isEmpty) return const {};
     _warn('payload "params" is not an object');
     return const {};
   }

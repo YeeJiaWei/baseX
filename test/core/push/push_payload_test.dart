@@ -113,4 +113,12 @@ void main() {
     expect(items.single, isA<Map<String, dynamic>>());
     expect(items.single, {'sku': 'a'});
   });
+
+  test('an empty params list from a PHP backend counts as no params', () {
+    final payload = PushPayload.fromData({
+      'payload': '{"type":"ACCOUNT_VERIFIED","link":"home","params":[]}',
+    });
+    expect(payload.type, 'ACCOUNT_VERIFIED');
+    expect(payload.params, isEmpty);
+  });
 }
