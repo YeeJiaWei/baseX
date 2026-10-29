@@ -21,6 +21,8 @@ XLangController? defaultLangController;
 /// * [additionalFunction] => Add additional function before runEtcApp
 /// * [additionalWidget] => Add additional widget before material app
 /// * [required200] => Set api whether always receive http code 200
+/// * [navigatorObservers] => Extra observers for the root navigator (e.g.
+///   an analytics screen-view observer); GetX's own observer stays in place
 /// * [onFreshInstall] => Runs once on a fresh (re)install, after providers
 ///   have booted (GetX, `defaultService`, theme available) and before
 ///   `runApp`. Shares the same memoised [XInstallMarker] as
@@ -62,6 +64,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   AdditionalWidget? additionalWidget,
   XLangController<T, K>? langController,
   Future<void> Function()? onFreshInstall,
+  List<NavigatorObserver> navigatorObservers = const [],
 }) async {
   //Check required field
   // assert(!(appLanguage != null && !requireSharePref),
@@ -153,6 +156,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
     initialBinding: initialBinding,
     themeMode: themeMode,
     additionalWidget: additionalWidget,
+    navigatorObservers: navigatorObservers,
   ));
 }
 
@@ -165,6 +169,7 @@ class MyApp extends StatelessWidget {
   final BaseXWidget initialPage;
   final Bindings initialBinding;
   final AdditionalWidget? additionalWidget;
+  final List<NavigatorObserver> navigatorObservers;
   const MyApp({
     required this.title,
     required this.lightTheme,
@@ -174,6 +179,7 @@ class MyApp extends StatelessWidget {
     required this.initialBinding,
     this.themeMode,
     this.additionalWidget,
+    this.navigatorObservers = const [],
   });
 
   Widget materialApp() {
@@ -185,6 +191,7 @@ class MyApp extends StatelessWidget {
       getPages: getPages,
       initialRoute: initialPage.routeName,
       initialBinding: initialBinding,
+      navigatorObservers: navigatorObservers,
       locale: Get.locale,
       localizationsDelegates: Get.locale == null
           ? []

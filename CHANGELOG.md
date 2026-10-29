@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+- New
+    - `runXApp(navigatorObservers:)` passes extra observers to the root `GetMaterialApp` (e.g. `FirebaseAnalyticsObserver` for screen views)
+
 ## [v1.0.0](https://github.com/YeeJiaWei/baseX/releases/tag/1.0.0) - 2026-10-13
 - Breaking
     - Minimum SDK raised to Dart `^3.13.0` / Flutter `>=3.47.0`
