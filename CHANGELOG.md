@@ -1,6 +1,8 @@
 # Change Log
 
 ## Unreleased
+- Breaking
+    - An unrecognised `APP_ENV` (e.g. `prod`, `dev`) now throws a `FormatException` at boot instead of silently resolving to development; pass `development`, `staging` or `production`. Unset still defaults to development
 - New
     - `runXApp(navigatorObservers:)` passes extra observers to the root `GetMaterialApp` (e.g. `FirebaseAnalyticsObserver` for screen views)
 
