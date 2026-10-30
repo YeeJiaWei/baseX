@@ -6,6 +6,7 @@
     - An unrecognised `APP_ENV` (e.g. `prod`, `dev`) now throws a `FormatException` at boot instead of silently resolving to development; pass `development`, `staging` or `production`. Unset still defaults to development
 - New
     - `runXApp(navigatorObservers:)` passes extra observers to the root `GetMaterialApp` (e.g. `FirebaseAnalyticsObserver` for screen views)
+    - `runXApp(lockTextScale:, lockDisplaySize:)`, both default `true`: the app ignores the OS font size and display size (Android Display size, iOS Display Zoom). baseX is now a Flutter plugin (Android + iOS) to read the display zoom factor; see `doc/DISPLAY_LOCK.md`
 
 ## [v1.0.0](https://github.com/YeeJiaWei/baseX/releases/tag/1.0.0) - 2026-10-13
 - Breaking
