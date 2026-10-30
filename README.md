@@ -16,7 +16,7 @@ dependencies:
   baseX:
     git:
       url: https://github.com/YeeJiaWei/baseX.git
-      ref: 1.0.0
+      ref: 1.1.0
 ```
 
 Git dependencies take no version ranges, so every app pins an exact tag and
