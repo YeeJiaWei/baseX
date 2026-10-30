@@ -69,38 +69,16 @@ class XLogger {
   static void errorBody(String text) => _mid('1;31', text);
   static void errorTail(String mid) => _close('1;31');
 
-  /// Border drawn around an HTTP block. Plain ASCII rather than box-drawing
-  /// characters: Windows consoles (cmd.exe / PowerShell at the default
-  /// codepage) render `╭│╰` and emoji as mojibake.
-  static const String _blockEdge = '+------------------------------';
-  static const String _blockSide = '|';
-
-  /// Prints a whole HTTP exchange as one block — outcome marker + [title]
-  /// summary on the header line, then a border wrapping the detail [lines]
-  /// (request lines prefixed `→`, response lines `←`; multi-line entries are
-  /// split so every row carries the border).
-  static void httpBlock({
-    required bool failed,
-    required String title,
-    required List<String> lines,
-  }) {
-    final marker = failed ? '[API ERR]' : '[API OK]';
+  /// Prints one HTTP exchange as a single row — 🟢 success / 🔴 failed, then
+  /// the [title] summary (method, full URL, status), e.g.
+  /// `🟢 GET https://host/api/v1/banners/current → 200`. Headers and bodies
+  /// are left to DevTools' Network tab.
+  static void httpLine({required bool failed, required String title}) {
+    final emoji = failed ? '🔴' : '🟢';
     final color = failed ? '1;31' : '1;32';
-
-    // debugPrint, not developer.log. dart:developer writes to the VM service
-    // logging stream, which IDE debug consoles surface but Windows terminals
-    // and Android Studio's Run window do not — these blocks were the only logs
-    // missing there, because every other method here already uses debugPrint.
-    // One call per row so a long response body wraps instead of being lost to
-    // debugPrint's per-call length throttle.
-    debugPrint('$marker ${_c(color, title)}');
-    debugPrint('  ${_c(color, _blockEdge)}');
-    for (final line in lines) {
-      for (final row in line.split('\n')) {
-        debugPrint('  ${_c(color, _blockSide)} $row');
-      }
-    }
-    debugPrint('  ${_c(color, _blockEdge)}');
+    // debugPrint, not developer.log: dart:developer's VM service stream never
+    // reaches Windows terminals or Android Studio's Run window.
+    debugPrint('$emoji ${_c(color, title)}');
   }
 
   /// Opens a block with the single outcome icon, e.g.

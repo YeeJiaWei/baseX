@@ -1,6 +1,8 @@
 # Change Log
 
 ## Unreleased
+- Breaking
+    - `XLogger.httpBlock` is replaced by `XLogger.httpLine`: each HTTP exchange logs one row, `🟢`/`🔴` + method, full URL and status (e.g. `🟢 GET https://host/api/v1/banners/current → 200`). Request and response bodies are no longer logged; inspect them in DevTools' Network tab
 - New
     - `runXApp(navigatorObservers:)` passes extra observers to the root `GetMaterialApp` (e.g. `FirebaseAnalyticsObserver` for screen views)
 
