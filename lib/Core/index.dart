@@ -21,7 +21,7 @@ export 'extension/x_extension.dart'
         HexColorOnNull;
 export 'app/x_get_app.dart' show runXApp, baseConstant, defaultLangController;
 export 'app/x_service_provider.dart' show ServiceProvider, ProviderConfig, ApiXServiceProvider;
-export 'app/x_env.dart' show XEnv, XEnvironment, flavorFromEnv;
+export 'app/x_env.dart' show XEnv, XEnvironment, flavorFromEnv, parseFlavor;
 export 'navigation/x_navigation.dart'
     show
         onGetPage,

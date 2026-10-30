@@ -3,6 +3,7 @@
 ## Unreleased
 - Breaking
     - `XLogger.httpBlock` is replaced by `XLogger.httpLine`: each HTTP exchange logs one row, `🟢`/`🔴` + method, full URL and status (e.g. `🟢 GET https://host/api/v1/banners/current → 200`). Request and response bodies are no longer logged; inspect them in DevTools' Network tab
+    - An unrecognised `APP_ENV` (e.g. `prod`, `dev`) now throws a `FormatException` at boot instead of silently resolving to development; pass `development`, `staging` or `production`. Unset still defaults to development
 - New
     - `runXApp(navigatorObservers:)` passes extra observers to the root `GetMaterialApp` (e.g. `FirebaseAnalyticsObserver` for screen views)
 
