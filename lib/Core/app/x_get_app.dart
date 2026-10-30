@@ -29,6 +29,11 @@ XLangController? defaultLangController;
 ///   `XAuthStore.bind`'s driver hook, so both agree on whether the install
 ///   is fresh regardless of which one runs first. Failures are caught and
 ///   logged, never block boot. See doc/FRESH_INSTALL.md.
+/// * [lockTextScale] => Ignore the OS font-size setting (text scale fixed at
+///   1.0). Default true
+/// * [lockDisplaySize] => Ignore the OS display-size setting (Android Display
+///   size, iOS Display Zoom); the app renders at the device's default density.
+///   Default true. See doc/DISPLAY_LOCK.md
 ///
 /// API connections are declared via an [ApiXServiceProvider] in the provider
 /// list (each [ApiXService] subclass owns its endpoint/timeout/interceptors);
@@ -58,13 +63,17 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   ThemeData? lightTheme,
   ThemeData? darkTheme,
   bool required200 = false,
-  List<DeviceOrientation> allowOrientationList = const [DeviceOrientation.portraitUp],
+  List<DeviceOrientation> allowOrientationList = const [
+    DeviceOrientation.portraitUp,
+  ],
   DefaultBaseConstant? constantConfig,
   Function? additionalFunction,
   AdditionalWidget? additionalWidget,
   XLangController<T, K>? langController,
   Future<void> Function()? onFreshInstall,
   List<NavigatorObserver> navigatorObservers = const [],
+  bool lockTextScale = true,
+  bool lockDisplaySize = true,
 }) async {
   //Check required field
   // assert(!(appLanguage != null && !requireSharePref),
@@ -90,10 +99,14 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
 
   final resolvedTitle = title ?? environment?.name ?? '';
 
-  assert((Uri.tryParse(baseConstant.baseUrl)?.isAbsolute ?? false),
-      'Set a valid live url via constantConfig.baseUrl or liveBaseUrl');
-  assert((Uri.tryParse(baseConstant.uatBaseUrl)?.isAbsolute ?? false),
-      'Set a valid staging url via constantConfig.uatBaseUrl or staginBaseUrl');
+  assert(
+    (Uri.tryParse(baseConstant.baseUrl)?.isAbsolute ?? false),
+    'Set a valid live url via constantConfig.baseUrl or liveBaseUrl',
+  );
+  assert(
+    (Uri.tryParse(baseConstant.uatBaseUrl)?.isAbsolute ?? false),
+    'Set a valid staging url via constantConfig.uatBaseUrl or staginBaseUrl',
+  );
 
   // Set api whether always receive http code 200
   baseConstant.success200 = required200;
@@ -110,7 +123,6 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   for (final provider in providers) {
     provider.boot();
   }
-
 
   if (langController != null) {
     defaultLangController = Get.put<XLangController<T, K>>(langController);
@@ -144,20 +156,28 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   // explicit light/darkTheme fallback.
   final ThemeData? resolvedLight = baseConstant.theme ?? lightTheme;
   final ThemeData? resolvedDark = baseConstant.theme ?? darkTheme;
-  assert(resolvedLight != null && resolvedDark != null,
-      'Set baseConstant.theme in a provider boot(), or pass lightTheme/darkTheme');
+  assert(
+    resolvedLight != null && resolvedDark != null,
+    'Set baseConstant.theme in a provider boot(), or pass lightTheme/darkTheme',
+  );
 
-  runApp(MyApp(
-    title: resolvedTitle,
-    lightTheme: resolvedLight!,
-    darkTheme: resolvedDark!,
-    getPages: getPages,
-    initialPage: initialPage,
-    initialBinding: initialBinding,
-    themeMode: themeMode,
-    additionalWidget: additionalWidget,
-    navigatorObservers: navigatorObservers,
-  ));
+  if (lockDisplaySize) await XDisplayScale.instance.start();
+
+  runApp(
+    MyApp(
+      title: resolvedTitle,
+      lightTheme: resolvedLight!,
+      darkTheme: resolvedDark!,
+      getPages: getPages,
+      initialPage: initialPage,
+      initialBinding: initialBinding,
+      themeMode: themeMode,
+      additionalWidget: additionalWidget,
+      navigatorObservers: navigatorObservers,
+      lockTextScale: lockTextScale,
+      lockDisplaySize: lockDisplaySize,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -170,6 +190,8 @@ class MyApp extends StatelessWidget {
   final Bindings initialBinding;
   final AdditionalWidget? additionalWidget;
   final List<NavigatorObserver> navigatorObservers;
+  final bool lockTextScale;
+  final bool lockDisplaySize;
   const MyApp({
     required this.title,
     required this.lightTheme,
@@ -180,6 +202,8 @@ class MyApp extends StatelessWidget {
     this.themeMode,
     this.additionalWidget,
     this.navigatorObservers = const [],
+    this.lockTextScale = true,
+    this.lockDisplaySize = true,
   });
 
   Widget materialApp() {
@@ -192,6 +216,11 @@ class MyApp extends StatelessWidget {
       initialRoute: initialPage.routeName,
       initialBinding: initialBinding,
       navigatorObservers: navigatorObservers,
+      builder: (context, child) => XDisplayLock(
+        lockTextScale: lockTextScale,
+        lockDisplaySize: lockDisplaySize,
+        child: child ?? const SizedBox.shrink(),
+      ),
       locale: Get.locale,
       localizationsDelegates: Get.locale == null
           ? []
@@ -199,13 +228,15 @@ class MyApp extends StatelessWidget {
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
-              DefaultCupertinoLocalizations.delegate
+              DefaultCupertinoLocalizations.delegate,
             ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return additionalWidget == null ? materialApp() : additionalWidget!(materialApp());
+    return additionalWidget == null
+        ? materialApp()
+        : additionalWidget!(materialApp());
   }
 }

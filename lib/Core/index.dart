@@ -20,6 +20,8 @@ export 'extension/x_extension.dart'
         DateTimeExtension,
         HexColorOnNull;
 export 'app/x_get_app.dart' show runXApp, baseConstant, defaultLangController;
+export 'app/x_display_lock.dart' show XDisplayLock;
+export 'app/x_display_scale.dart' show XDisplayScale;
 export 'app/x_service_provider.dart' show ServiceProvider, ProviderConfig, ApiXServiceProvider;
 export 'app/x_env.dart' show XEnv, XEnvironment, flavorFromEnv, parseFlavor;
 export 'navigation/x_navigation.dart'
