@@ -8,6 +8,8 @@ export 'error/sentry_constant.dart' show SentryConstant;
 export 'base/x_base_controller.dart' show BaseXController;
 export 'base/x_base_widget.dart' show BaseXWidget;
 export 'app/base_constant.dart' show BaseConstant, Environment, Position;
+export 'app/device_info.dart' show DeviceInfo;
+export 'app/app_info.dart' show AppInfo;
 export 'app/flavor.dart' show Flavor, flavorFromEnv, parseFlavor;
 export 'app/x_declaration.dart'
     show

@@ -40,6 +40,8 @@ XLangController? defaultLangController;
 /// * [lockDisplaySize] => Ignore the OS display-size setting (Android Display
 ///   size, iOS Display Zoom); the app renders at the device's default density.
 ///   Default true. See doc/DISPLAY_LOCK.md
+/// * device / app info => loaded here before anything else boots; read it via
+///   `baseConstant.deviceInfo` / `baseConstant.appInfo`
 ///
 /// Sentry is configured by the app constant's
 /// [BaseConstant.errorTracking] (an [SentryConstant]), not by a parameter.
@@ -101,6 +103,17 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
 
     //Set Constant File
     baseConstant = constantConfig ?? BaseConstant();
+
+    try {
+      await baseConstant.deviceInfo.load();
+    } catch (error, stackTrace) {
+      XLogger.error('DeviceInfo load failed: $error\n$stackTrace');
+    }
+    try {
+      await baseConstant.appInfo.load();
+    } catch (error, stackTrace) {
+      XLogger.error('AppInfo load failed: $error\n$stackTrace');
+    }
 
     //Set Base Url — from the constant's resolved environment, then overrides.
     final environment = baseConstant.env?.active;

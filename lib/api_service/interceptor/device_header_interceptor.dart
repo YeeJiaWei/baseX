@@ -11,16 +11,16 @@ class DeviceHeaderInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     options.headers.addAll({
       Headers.acceptHeader: Headers.jsonContentType,
-      'App-Version': baseConstant.appVersion.value,
-      'Os-Type': GetPlatform.isIOS ? 'ios' : 'android',
+      'App-Version': baseConstant.appInfo.version,
+      'Os-Type': baseConstant.deviceInfo.os,
       if (defaultLangController != null)
         'Label-Version': defaultLangController?.labelVersion,
       if (Get.locale != null) 'Accept-Language': Get.locale?.languageCode,
-      'Device-Model': baseConstant.deviceModel.value,
-      if (baseConstant.deviceId.value != '')
-        'Device-ID': baseConstant.deviceId.value,
-      if (baseConstant.osVersion.value != '')
-        'Os-Version': baseConstant.osVersion.value,
+      'Device-Model': baseConstant.deviceInfo.model,
+      if (baseConstant.deviceInfo.id != '')
+        'Device-ID': baseConstant.deviceInfo.id,
+      if (baseConstant.deviceInfo.osVersion != '')
+        'Os-Version': baseConstant.deviceInfo.osVersion,
     });
     options.headers.addAll(baseConstant.additionalHeader);
     handler.next(options);

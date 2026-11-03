@@ -26,7 +26,7 @@ export 'custom_error/index.dart'
         XError;
 export 'api_service/index.dart';
 export 'x_widget/index.dart' show XCachedImage, XPicker, showXPicker, XSkeleton;
-export 'controller/index.dart' show XController, XLangController;
+export 'controller/index.dart' show XLangController;
 
 export 'package:get/get.dart' hide Response, FormData, MultipartFile;
 

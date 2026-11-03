@@ -25,6 +25,12 @@ class BaseConstant {
   /// The app's error tracking, the same for every flavor; null turns it off.
   ErrorTrackingConstant? get errorTracking => null;
 
+  /// The device's model, OS version and id, loaded by [runXApp] at boot.
+  DeviceInfo get deviceInfo => DeviceInfo.instance;
+
+  /// The app's name, version, build number and package name, loaded by [runXApp] at boot.
+  AppInfo get appInfo => AppInfo.instance;
+
   /// The service providers [runXApp] boots. Reads them from [providerConfig].
   List<ServiceProvider> providers() => providerConfig.providers;
 
@@ -45,16 +51,6 @@ class BaseConstant {
 
   bool success200 = false;
 
-  RxString deviceModel = ''.obs;
-
-  RxString osVersion = ''.obs;
-
-  RxString appVersion = '1.0.0'.obs;
-
-  RxString deviceId = ''.obs;
-
-  RxString packageName = ''.obs;
-
   Position position = Position.bottom;
 
   Map<String, String> additionalHeader = <String, String>{};
@@ -64,9 +60,9 @@ class BaseConstant {
     width: double.infinity,
     padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     color: Colors.greenAccent,
-    child: Obx(
-      () => Text(
-        'Endpoint: Staging | Os-type: ${GetPlatform.isIOS ? 'ios' : 'android'} | Device-Model: ${baseConstant.deviceModel.value} | Os-version: ${baseConstant.osVersion.value}',
+    child: Builder(
+      builder: (_) => Text(
+        'Endpoint: Staging | Os-type: ${baseConstant.deviceInfo.os} | Device-Model: ${baseConstant.deviceInfo.model} | Os-version: ${baseConstant.deviceInfo.osVersion}',
         style: TextStyle(
           fontSize: 8,
         ),
