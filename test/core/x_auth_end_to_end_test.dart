@@ -136,7 +136,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    baseConstant = DefaultBaseConstant();
+    baseConstant = BaseConstant();
     XAuthStore.reset();
     XInstallMarker.reset();
     X = null;

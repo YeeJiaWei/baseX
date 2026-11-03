@@ -5,44 +5,7 @@ import 'package:huawei_hmsavailability/huawei_hmsavailability.dart';
 
 enum Environment { Live, Staging }
 
-/// App build flavor, selected via --dart-define=APP_ENV=development|staging|production.
-enum Flavor { development, staging, production }
-
 enum Position { top, bottom, none }
-
-/// [BaseXConstant] is a base class constant
-abstract class BaseXConstant {
-  abstract Environment appEnv;
-  Position get position;
-
-  abstract String baseUrl;
-  abstract String uatBaseUrl;
-
-  abstract bool success200;
-  RxString get osVersion;
-  RxString get deviceModel;
-  RxString get appVersion;
-  RxString get deviceId;
-  RxString get packageName;
-
-  Color get defaultBackgroundColor;
-
-  Widget get defaultLoadingWidget;
-  Widget get envBar;
-  Widget customErrorWidget(FlutterErrorDetails error);
-
-  Map<String, String> get additionalHeader;
-
-  FloatingAction? get floatingAction;
-  DrawerAction? get drawerAction;
-
-  Future<void> defaulOnFailedDialog(int statusCode, String message);
-  Future<bool> isHMS();
-  Future<bool> isGMS();
-
-  @Deprecated('Use XExceptionHandler (runXApp exceptionHandler:) instead')
-  GeneralErrorHandle get onFailed;
-}
 
 /// Default variable:
 ///
@@ -50,17 +13,17 @@ abstract class BaseXConstant {
 /// 2. staginBaseUrl => Staging url set in runEtcApp
 /// 3. languageCode => current language selected, by default is English, en. (if multi langauge is enable in runEtcApp)
 /// 4. onFailed => global onFailed set in runEtcApp
-class DefaultBaseConstant extends BaseXConstant {
+class BaseConstant {
   /// The app's [ProviderConfig]. Override in your AppConstant to point at your
   /// ProviderConfig subclass; defaults to an empty config.
   ProviderConfig get providerConfig => const ProviderConfig();
 
   /// The app's environment resolver. Override in your AppConstant to point at
-  /// your [XEnv]; runXApp reads its active environment for the title + base URLs.
-  XEnv<XEnvironment>? get env => null;
+  /// your [EnvironmentResolver]; runXApp reads its active environment for the title + base URLs.
+  EnvironmentResolver<EnvironmentConstant>? get env => null;
 
   /// The app's error tracking, the same for every flavor; null turns it off.
-  XErrorTrackingConstant? get errorTracking => null;
+  ErrorTrackingConstant? get errorTracking => null;
 
   /// The service providers [runXApp] boots. Reads them from [providerConfig].
   List<ServiceProvider> providers() => providerConfig.providers;
@@ -70,47 +33,33 @@ class DefaultBaseConstant extends BaseXConstant {
   /// lightTheme/darkTheme.
   ThemeData? theme;
 
-  @override
   Color get defaultBackgroundColor => Colors.white;
 
-  @override
   Widget get defaultLoadingWidget => SizedBox.shrink();
 
-  @override
   Environment appEnv = Environment.Live;
 
-  @override
   String baseUrl = '';
 
-  @override
   String uatBaseUrl = '';
 
-  @override
   bool success200 = false;
 
-  @override
   RxString deviceModel = ''.obs;
 
-  @override
   RxString osVersion = ''.obs;
 
-  @override
   RxString appVersion = '1.0.0'.obs;
 
-  @override
   RxString deviceId = ''.obs;
 
-  @override
   RxString packageName = ''.obs;
 
-  @override
   Position position = Position.bottom;
 
-  @override
   Map<String, String> additionalHeader = <String, String>{};
 
 
-  @override
   Widget envBar = Container(
     width: double.infinity,
     padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -126,7 +75,6 @@ class DefaultBaseConstant extends BaseXConstant {
     ),
   );
 
-  @override
   @Deprecated('Use XExceptionHandler (runXApp exceptionHandler:) instead')
   late GeneralErrorHandle onFailed;
 
@@ -142,7 +90,6 @@ class DefaultBaseConstant extends BaseXConstant {
   ///
   /// 21: The device is too old to support HMS Core (APK)
   ///
-  @override
   Future<bool> isHMS() async {
     if (GetPlatform.isIOS) return false;
     HmsApiAvailability client = HmsApiAvailability();
@@ -152,7 +99,6 @@ class DefaultBaseConstant extends BaseXConstant {
     // -- Added !_isGMS to ensure the device have actually no GMS, else still can proceed GMS services.
   }
 
-  @override
   Future<bool> isGMS() async {
     if (GetPlatform.isIOS) return true;
     bool result = GmsCheck().isGmsAvailable;
@@ -160,7 +106,6 @@ class DefaultBaseConstant extends BaseXConstant {
   }
 
   /// Error Widget which can be override
-  @override
   Widget customErrorWidget(FlutterErrorDetails error) => SafeArea(
         child: Container(
           color: Colors.white,
@@ -241,7 +186,6 @@ class DefaultBaseConstant extends BaseXConstant {
         ),
       );
 
-  @override
   Future<void> defaulOnFailedDialog(int statusCode, String message) => Get.dialog(AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
         content: Text(message),
@@ -260,7 +204,6 @@ class DefaultBaseConstant extends BaseXConstant {
   ///  ),
   /// );
   /// ```
-  @override
   FloatingAction? get floatingAction => null;
 
   /// Put [drawerAction] with [DrawerAction] in your app_constant for global drawer action
@@ -289,6 +232,5 @@ class DefaultBaseConstant extends BaseXConstant {
   ///    ),
   /// );
   /// ```
-  @override
   DrawerAction? get drawerAction => null;
 }

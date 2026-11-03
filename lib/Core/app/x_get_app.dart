@@ -6,7 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:gms_check/gms_check.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-late DefaultBaseConstant baseConstant;
+late BaseConstant baseConstant;
 XLangController? defaultLangController;
 
 /// [runXApp] runXApp<XLabel, XLanguage>
@@ -42,7 +42,7 @@ XLangController? defaultLangController;
 ///   Default true. See doc/DISPLAY_LOCK.md
 ///
 /// Sentry is configured by the app constant's
-/// [DefaultBaseConstant.errorTracking] (an [XSentryConstant]), not by a parameter.
+/// [BaseConstant.errorTracking] (an [SentryConstant]), not by a parameter.
 /// When it is enabled, runXApp starts Sentry before the app and
 /// [XExceptionHandler.report] sends to it. Errors before runXApp are not
 /// captured. See doc/ERROR_HANDLING.md
@@ -80,7 +80,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   List<DeviceOrientation> allowOrientationList = const [
     DeviceOrientation.portraitUp,
   ],
-  DefaultBaseConstant? constantConfig,
+  BaseConstant? constantConfig,
   Function? additionalFunction,
   AdditionalWidget? additionalWidget,
   XLangController<T, K>? langController,
@@ -100,7 +100,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
     SystemChrome.setPreferredOrientations(allowOrientationList);
 
     //Set Constant File
-    baseConstant = constantConfig ?? DefaultBaseConstant();
+    baseConstant = constantConfig ?? BaseConstant();
 
     //Set Base Url — from the constant's resolved environment, then overrides.
     final environment = baseConstant.env?.active;
@@ -200,7 +200,7 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   }
 
   final tracking = constantConfig?.errorTracking;
-  if (tracking is XSentryConstant && tracking.enabled) {
+  if (tracking is SentryConstant && tracking.enabled) {
     XExceptionHandler.sentryEnabled = true;
     await SentryFlutter.init((options) {
       options.dsn = tracking.dsn;

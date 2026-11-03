@@ -12,12 +12,12 @@ builds on. Feature integrations an app opts into live in their own package or
 in the app itself, never here.
 
 **Belongs in baseX**
-- App bootstrap: `runXApp`, `XEnv`, service providers, display/text-scale lock
+- App bootstrap: `runXApp`, `EnvironmentResolver`, service providers, display/text-scale lock
 - API service (Dio connections, interceptors, envelope, error mapping)
 - Auth token store (`XAuthStore`) and fresh-install handling
 - Push notifications and notification links
 - Navigation, storage, logger, base controller/widget, error types
-- Crash reporting through Sentry (`DefaultBaseConstant.errorTracking`): the
+- Crash reporting through Sentry (`BaseConstant.errorTracking`): the
   deliberate exception to the rule below (user decision 2026-11-03); the
   native Sentry SDK is the cost every app pays
 - Small generic widgets with no extra native setup (`XCachedImage`, `XPicker`,

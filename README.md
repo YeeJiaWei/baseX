@@ -61,7 +61,7 @@ into it.
   sign-in / sign-out lifecycle.
 - [Error handling](doc/ERROR_HANDLING.md) — `XExceptionHandler`, the log-only
   default, overriding `render` / `shouldReport`, `BaseXController.run`, Sentry
-  as the default reporter (configured by `DefaultBaseConstant.errorTracking`), and the
+  as the default reporter (configured by `BaseConstant.errorTracking`), and the
   `onFailed` deprecation.
 - [Fresh install](doc/FRESH_INSTALL.md) — detecting a first launch and purging
   state left behind by a previous install.

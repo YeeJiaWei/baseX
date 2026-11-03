@@ -1,9 +1,9 @@
 import 'package:baseX/base_x.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-/// Sentry settings with working defaults; subclass and override any getter, then return it from DefaultBaseConstant.errorTracking.
-class XSentryConstant extends XErrorTrackingConstant {
-  const XSentryConstant();
+/// Sentry settings with working defaults; subclass and override any getter, then return it from BaseConstant.errorTracking.
+class SentryConstant extends ErrorTrackingConstant {
+  const SentryConstant();
 
   /// The project DSN, written as a literal in the app's subclass; empty keeps Sentry off.
   String get dsn => '';

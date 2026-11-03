@@ -3,11 +3,12 @@ library core;
 export 'error/x_error_context.dart' show XErrorContext;
 export 'error/x_error_source.dart' show XErrorSource;
 export 'error/x_exception_handler.dart' show XExceptionHandler;
-export 'error/x_error_tracking_constant.dart' show XErrorTrackingConstant;
-export 'error/x_sentry_constant.dart' show XSentryConstant;
+export 'error/error_tracking_constant.dart' show ErrorTrackingConstant;
+export 'error/sentry_constant.dart' show SentryConstant;
 export 'base/x_base_controller.dart' show BaseXController;
 export 'base/x_base_widget.dart' show BaseXWidget;
-export 'app/x_constant.dart' show BaseXConstant, DefaultBaseConstant, Environment, Flavor, Position;
+export 'app/base_constant.dart' show BaseConstant, Environment, Position;
+export 'app/flavor.dart' show Flavor, flavorFromEnv, parseFlavor;
 export 'app/x_declaration.dart'
     show
         GeneralErrorHandle,
@@ -28,7 +29,8 @@ export 'app/x_get_app.dart' show runXApp, baseConstant, defaultLangController;
 export 'app/x_display_lock.dart' show XDisplayLock;
 export 'app/x_display_scale.dart' show XDisplayScale;
 export 'app/x_service_provider.dart' show ServiceProvider, ProviderConfig, ApiXServiceProvider;
-export 'app/x_env.dart' show XEnv, XEnvironment, flavorFromEnv, parseFlavor;
+export 'app/environment_constant.dart' show EnvironmentConstant;
+export 'app/environment_resolver.dart' show EnvironmentResolver;
 export 'navigation/x_navigation.dart'
     show
         onGetPage,

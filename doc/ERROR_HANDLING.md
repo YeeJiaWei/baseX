@@ -78,9 +78,9 @@ Sentry is baseX's default crash reporter. It is configured by classes, not by
 `runXApp` parameters, and every value has a default:
 
 ```
-XErrorTrackingConstant      enabled (release/profile, or debug with ERROR_TRACKING_DEBUG)
+ErrorTrackingConstant      enabled (release/profile, or debug with ERROR_TRACKING_DEBUG)
         ^
-XSentryConstant             dsn, environment, tracesSampleRate, configure, hasValidDsn
+SentryConstant             dsn, environment, tracesSampleRate, configure, hasValidDsn
         ^
 YourSentryConstant          override only what differs
 ```
@@ -93,28 +93,28 @@ YourSentryConstant          override only what differs
 | `tracesSampleRate` | `0.2` in production, `1.0` otherwise |
 | `configure(options)` | no-op; set any other `SentryFlutterOptions` here |
 
-**Opt in.** Return the constant from the app-wide `DefaultBaseConstant`. Sentry
+**Opt in.** Return the constant from the app-wide `BaseConstant`. Sentry
 config is the same for every flavor (Sentry separates them by its `environment`
 tag, which and the sample rate derive from the active flavor):
 
 ```dart
-class AppSentry extends XSentryConstant {
+class AppSentry extends SentryConstant {
   const AppSentry();
 
   @override
   String get dsn => 'https://...'; // a DSN is not secret; no --dart-define
 }
 
-class GlobalAppConstant extends DefaultBaseConstant {
+class GlobalAppConstant extends BaseConstant {
   @override
-  XErrorTrackingConstant? get errorTracking => const AppSentry();
+  ErrorTrackingConstant? get errorTracking => const AppSentry();
 }
 ```
 
 `errorTracking` defaults to `null`, meaning no tracking.
 
-There are two kinds of constants: app-wide ones on `DefaultBaseConstant` (the
-same in every flavor, like this) and per-flavor ones on `XEnvironment`
+There are two kinds of constants: app-wide ones on `BaseConstant` (the
+same in every flavor, like this) and per-flavor ones on `EnvironmentConstant`
 (hosts and keys that differ per flavor).
 
 **Debug builds.** Tracking is off in debug. Pass

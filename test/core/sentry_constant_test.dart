@@ -2,32 +2,32 @@ import 'package:baseX/Core/index.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _ValidDsnSentry extends XSentryConstant {
+class _ValidDsnSentry extends SentryConstant {
   const _ValidDsnSentry();
 
   @override
   String get dsn => 'https://x@y/1';
 }
 
-class _PlaceholderDsnSentry extends XSentryConstant {
+class _PlaceholderDsnSentry extends SentryConstant {
   const _PlaceholderDsnSentry();
 
   @override
   String get dsn => 'SET_ME';
 }
 
-class _BareConstant extends DefaultBaseConstant {}
+class _BareConstant extends BaseConstant {}
 
 void main() {
-  test('XErrorTrackingConstant is enabled only outside debug unless overridden', () {
+  test('ErrorTrackingConstant is enabled only outside debug unless overridden', () {
     expect(
-      const XErrorTrackingConstant().enabled,
-      !kDebugMode || XErrorTrackingConstant.debugOverride,
+      const ErrorTrackingConstant().enabled,
+      !kDebugMode || ErrorTrackingConstant.debugOverride,
     );
   });
 
-  test('XSentryConstant defaults: no DSN, development, full tracing, off', () {
-    const sentry = XSentryConstant();
+  test('SentryConstant defaults: no DSN, development, full tracing, off', () {
+    const sentry = SentryConstant();
     expect(sentry.dsn, '');
     expect(sentry.hasValidDsn, isFalse);
     expect(sentry.environment, 'development');
@@ -40,7 +40,7 @@ void main() {
     expect(sentry.hasValidDsn, isTrue);
     expect(
       sentry.enabled,
-      !kDebugMode || XErrorTrackingConstant.debugOverride,
+      !kDebugMode || ErrorTrackingConstant.debugOverride,
     );
   });
 
@@ -50,7 +50,7 @@ void main() {
     expect(sentry.enabled, isFalse);
   });
 
-  test('DefaultBaseConstant.errorTracking defaults to null', () {
+  test('BaseConstant.errorTracking defaults to null', () {
     expect(_BareConstant().errorTracking, isNull);
   });
 }
