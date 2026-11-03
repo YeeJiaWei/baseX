@@ -65,6 +65,13 @@ into it.
   `onFailed` deprecation.
 - [Fresh install](doc/FRESH_INSTALL.md) — detecting a first launch and purging
   state left behind by a previous install.
+- Device and app info
+  - [Device info](doc/device-and-app-info/device-info.md) — `DeviceInfo`, its properties,
+    sources and `debugSet` for tests.
+  - [App info](doc/device-and-app-info/app-info.md) — `AppInfo`, its properties, sources
+    and `debugSet` for tests.
+  - [Request headers](doc/device-and-app-info/request-headers.md) — the headers
+    `DeviceHeaderInterceptor` sends and when each is skipped.
 - Notifications
   - [Getting started](doc/notifications/getting_started.md) — set up push and
     notification links in a new app, step by step.
