@@ -7,6 +7,16 @@ This repository (`YeeJiaWei/baseX`) is where baseX is developed from `1.0.0`
 on. The original `haolun1996/baseX` stays at `0.6.x` and receives no further
 changes — point apps here.
 
+## Scope
+
+baseX covers the core setup every app needs: bootstrap, API service, auth
+token store, push, notification links, navigation, storage, logging and error
+handling. Feature integrations an app opts into — sign-in providers, map
+launchers, payments, ads, analytics — belong in their own package or in the
+app, so apps that don't use them don't carry their native SDKs. Social login
+and the map launcher were removed for this reason; see the
+[changelog](CHANGELOG.md).
+
 ## Install
 
 baseX is not on pub.dev. Depend on it through git and pin a release tag:
