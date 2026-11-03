@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:baseX/Core/error/x_error_context.dart';
@@ -5,10 +6,14 @@ import 'package:baseX/Core/error/x_error_source.dart';
 import 'package:baseX/Core/logger/x_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 /// Centralised app-wide error handler: every action, uncaught and widget error flows through [handle]; apps override [report], [render], [shouldReport] and [buildErrorWidget].
 class XExceptionHandler {
   XExceptionHandler();
+
+  /// Whether runXApp started Sentry; when true the default [report] sends to it instead of forwarding to the replaced hooks.
+  static bool sentryEnabled = false;
 
   /// The handler [BaseXController.run] hands errors to; replaced by [install].
   static XExceptionHandler instance = XExceptionHandler();
@@ -73,14 +78,46 @@ class XExceptionHandler {
   /// Whether the error is unexpected and should be reported; false skips [report] for expected failures.
   bool shouldReport(Object error) => true;
 
-  /// Sends the error to the crash reporter; the default forwards to the hook this handler replaced, apps that report directly override it.
+  /// Sends the error to Sentry when runXApp started it, else forwards to the hook this handler replaced; apps that report directly override it.
   void report(Object error, StackTrace stackTrace, XErrorContext context) {
+    if (sentryEnabled) {
+      _reportToSentry(error, stackTrace, context);
+      return;
+    }
     final details = context.details;
     if (context.source == XErrorSource.widget && details != null) {
       _previousFlutterOnError?.call(details);
       return;
     }
     _previousOnError?.call(error, stackTrace);
+  }
+
+  // Not forwarded to the replaced hooks: with Sentry on they are Sentry's own and would double-report.
+  void _reportToSentry(
+    Object error,
+    StackTrace stackTrace,
+    XErrorContext context,
+  ) {
+    final details = context.details;
+    unawaited(Sentry.captureException(
+      ThrowableMechanism(
+        Mechanism(
+          type: 'baseX.${context.source.name}',
+          handled: context.source == XErrorSource.action,
+        ),
+        error,
+      ),
+      stackTrace: stackTrace,
+      withScope: (scope) async {
+        await scope.setTag('error.source', context.source.name);
+        if (details != null) {
+          await scope.setContexts('flutter_error', {
+            'library': details.library,
+            'context': details.context?.toDescription(),
+          });
+        }
+      },
+    ));
   }
 
   /// Builds the widget shown in place of one that failed to build; the default is the previous ErrorWidget.builder.

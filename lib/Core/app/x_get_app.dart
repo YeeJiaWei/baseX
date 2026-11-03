@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:gms_check/gms_check.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 late DefaultBaseConstant baseConstant;
 XLangController? defaultLangController;
@@ -39,6 +40,12 @@ XLangController? defaultLangController;
 /// * [lockDisplaySize] => Ignore the OS display-size setting (Android Display
 ///   size, iOS Display Zoom); the app renders at the device's default density.
 ///   Default true. See doc/DISPLAY_LOCK.md
+///
+/// Sentry is configured by the app constant's
+/// [DefaultBaseConstant.errorTracking] (an [XSentryConstant]), not by a parameter.
+/// When it is enabled, runXApp starts Sentry before the app and
+/// [XExceptionHandler.report] sends to it. Errors before runXApp are not
+/// captured. See doc/ERROR_HANDLING.md
 ///
 /// API connections are declared via an [ApiXServiceProvider] in the provider
 /// list (each [ApiXService] subclass owns its endpoint/timeout/interceptors);
@@ -82,112 +89,130 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   bool lockTextScale = true,
   bool lockDisplaySize = true,
 }) async {
-  //Check required field
-  // assert(!(appLanguage != null && !requireSharePref),
-  //     'Required Share Preference to enable App Language');
+  Future<void> startApp() async {
+    //Check required field
+    // assert(!(appLanguage != null && !requireSharePref),
+    //     'Required Share Preference to enable App Language');
 
-  await GmsCheck().checkGmsAvailability();
+    await GmsCheck().checkGmsAvailability();
 
-  //Set available orientation
-  SystemChrome.setPreferredOrientations(allowOrientationList);
+    //Set available orientation
+    SystemChrome.setPreferredOrientations(allowOrientationList);
 
-  //Set Constant File
-  baseConstant = constantConfig ?? DefaultBaseConstant();
+    //Set Constant File
+    baseConstant = constantConfig ?? DefaultBaseConstant();
 
-  //Set Base Url — from the constant's resolved environment, then overrides.
-  final environment = baseConstant.env?.active;
-  if (environment != null) {
-    baseConstant.baseUrl = environment.apiBaseUrl;
-    baseConstant.uatBaseUrl = environment.apiBaseUrl;
-  }
-  if (staginBaseUrl != null) baseConstant.uatBaseUrl = staginBaseUrl;
-  if (liveBaseUrl != null) baseConstant.baseUrl = liveBaseUrl;
-  if (currentEnv != null) baseConstant.appEnv = currentEnv;
-
-  final resolvedTitle = title ?? environment?.name ?? '';
-
-  assert(
-    (Uri.tryParse(baseConstant.baseUrl)?.isAbsolute ?? false),
-    'Set a valid live url via constantConfig.baseUrl or liveBaseUrl',
-  );
-  assert(
-    (Uri.tryParse(baseConstant.uatBaseUrl)?.isAbsolute ?? false),
-    'Set a valid staging url via constantConfig.uatBaseUrl or staginBaseUrl',
-  );
-
-  // Set api whether always receive http code 200
-  baseConstant.success200 = required200;
-
-  sharedPref();
-
-  // Boot service providers (declared on the constant config) now that storage
-  // (sharedPref) is ready. register() for all, then boot() for all — so a
-  // boot() may rely on another's register().
-  final providers = baseConstant.providers();
-  for (final provider in providers) {
-    provider.register();
-  }
-  for (final provider in providers) {
-    provider.boot();
-  }
-
-  if (langController != null) {
-    defaultLangController = Get.put<XLangController<T, K>>(langController);
-  }
-
-  // Fresh-install hook — after providers boot, so GetX/services/theme are
-  // available. Shares the process-wide marker with XAuthStore.bind, whichever
-  // runs first decides "fresh" for both. A handler failure is caught and
-  // logged, never crashes boot; the marker is still set either way so an app
-  // with no auth store and no handler gets it written too.
-  if (onFreshInstall != null) {
-    try {
-      if (await XInstallMarker.instance.isFreshInstall) {
-        await onFreshInstall();
-      }
-    } catch (e) {
-      XLogger.error('onFreshInstall failed: $e');
+    //Set Base Url — from the constant's resolved environment, then overrides.
+    final environment = baseConstant.env?.active;
+    if (environment != null) {
+      baseConstant.baseUrl = environment.apiBaseUrl;
+      baseConstant.uatBaseUrl = environment.apiBaseUrl;
     }
+    if (staginBaseUrl != null) baseConstant.uatBaseUrl = staginBaseUrl;
+    if (liveBaseUrl != null) baseConstant.baseUrl = liveBaseUrl;
+    if (currentEnv != null) baseConstant.appEnv = currentEnv;
+
+    final resolvedTitle = title ?? environment?.name ?? '';
+
+    assert(
+      (Uri.tryParse(baseConstant.baseUrl)?.isAbsolute ?? false),
+      'Set a valid live url via constantConfig.baseUrl or liveBaseUrl',
+    );
+    assert(
+      (Uri.tryParse(baseConstant.uatBaseUrl)?.isAbsolute ?? false),
+      'Set a valid staging url via constantConfig.uatBaseUrl or staginBaseUrl',
+    );
+
+    // Set api whether always receive http code 200
+    baseConstant.success200 = required200;
+
+    sharedPref();
+
+    // Boot service providers (declared on the constant config) now that storage
+    // (sharedPref) is ready. register() for all, then boot() for all — so a
+    // boot() may rely on another's register().
+    final providers = baseConstant.providers();
+    for (final provider in providers) {
+      provider.register();
+    }
+    for (final provider in providers) {
+      provider.boot();
+    }
+
+    if (langController != null) {
+      defaultLangController = Get.put<XLangController<T, K>>(langController);
+    }
+
+    // Fresh-install hook — after providers boot, so GetX/services/theme are
+    // available. Shares the process-wide marker with XAuthStore.bind, whichever
+    // runs first decides "fresh" for both. A handler failure is caught and
+    // logged, never crashes boot; the marker is still set either way so an app
+    // with no auth store and no handler gets it written too.
+    if (onFreshInstall != null) {
+      try {
+        if (await XInstallMarker.instance.isFreshInstall) {
+          await onFreshInstall();
+        }
+      } catch (e) {
+        XLogger.error('onFreshInstall failed: $e');
+      }
+    }
+    await XInstallMarker.instance.markSeen();
+
+    //Set Gloabal onFailed
+    baseConstant.onFailed =
+        onFailed ?? (context, code, msg, {tryAgain}) => true;
+
+    (exceptionHandler ?? XExceptionHandler()).install();
+
+    //Additional Function required before run app
+    if (additionalFunction != null) {
+      additionalFunction();
+    }
+
+    // Theme applied by a provider during boot() (baseConstant.theme), else the
+    // explicit light/darkTheme fallback.
+    final ThemeData? resolvedLight = baseConstant.theme ?? lightTheme;
+    final ThemeData? resolvedDark = baseConstant.theme ?? darkTheme;
+    assert(
+      resolvedLight != null && resolvedDark != null,
+      'Set baseConstant.theme in a provider boot(), or pass lightTheme/darkTheme',
+    );
+
+    if (lockDisplaySize) await XDisplayScale.instance.start();
+
+    runApp(
+      MyApp(
+        title: resolvedTitle,
+        lightTheme: resolvedLight!,
+        darkTheme: resolvedDark!,
+        getPages: getPages,
+        initialPage: initialPage,
+        initialBinding: initialBinding,
+        themeMode: themeMode,
+        additionalWidget: additionalWidget,
+        navigatorObservers: navigatorObservers,
+        lockTextScale: lockTextScale,
+        lockDisplaySize: lockDisplaySize,
+      ),
+    );
+
   }
-  await XInstallMarker.instance.markSeen();
 
-  //Set Gloabal onFailed
-  baseConstant.onFailed =
-      onFailed ?? (context, code, msg, {tryAgain}) => true;
-
-  (exceptionHandler ?? XExceptionHandler()).install();
-
-  //Additional Function required before run app
-  if (additionalFunction != null) {
-    additionalFunction();
+  final tracking = constantConfig?.errorTracking;
+  if (tracking is XSentryConstant && tracking.enabled) {
+    XExceptionHandler.sentryEnabled = true;
+    await SentryFlutter.init((options) {
+      options.dsn = tracking.dsn;
+      options.environment = tracking.environment;
+      options.tracesSampleRate = tracking.tracesSampleRate;
+      tracking.configure(options);
+    }, appRunner: startApp);
+    return;
   }
 
-  // Theme applied by a provider during boot() (baseConstant.theme), else the
-  // explicit light/darkTheme fallback.
-  final ThemeData? resolvedLight = baseConstant.theme ?? lightTheme;
-  final ThemeData? resolvedDark = baseConstant.theme ?? darkTheme;
-  assert(
-    resolvedLight != null && resolvedDark != null,
-    'Set baseConstant.theme in a provider boot(), or pass lightTheme/darkTheme',
-  );
-
-  if (lockDisplaySize) await XDisplayScale.instance.start();
-
-  runApp(
-    MyApp(
-      title: resolvedTitle,
-      lightTheme: resolvedLight!,
-      darkTheme: resolvedDark!,
-      getPages: getPages,
-      initialPage: initialPage,
-      initialBinding: initialBinding,
-      themeMode: themeMode,
-      additionalWidget: additionalWidget,
-      navigatorObservers: navigatorObservers,
-      lockTextScale: lockTextScale,
-      lockDisplaySize: lockDisplaySize,
-    ),
-  );
+  XExceptionHandler.sentryEnabled = false;
+  await startApp();
 }
 
 class MyApp extends StatelessWidget {

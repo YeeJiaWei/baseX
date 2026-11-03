@@ -3,6 +3,8 @@ library core;
 export 'error/x_error_context.dart' show XErrorContext;
 export 'error/x_error_source.dart' show XErrorSource;
 export 'error/x_exception_handler.dart' show XExceptionHandler;
+export 'error/x_error_tracking_constant.dart' show XErrorTrackingConstant;
+export 'error/x_sentry_constant.dart' show XSentryConstant;
 export 'base/x_base_controller.dart' show BaseXController;
 export 'base/x_base_widget.dart' show BaseXWidget;
 export 'app/x_constant.dart' show BaseXConstant, DefaultBaseConstant, Environment, Flavor, Position;

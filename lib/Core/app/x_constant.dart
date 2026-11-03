@@ -59,6 +59,9 @@ class DefaultBaseConstant extends BaseXConstant {
   /// your [XEnv]; runXApp reads its active environment for the title + base URLs.
   XEnv<XEnvironment>? get env => null;
 
+  /// The app's error tracking, the same for every flavor; null turns it off.
+  XErrorTrackingConstant? get errorTracking => null;
+
   /// The service providers [runXApp] boots. Reads them from [providerConfig].
   List<ServiceProvider> providers() => providerConfig.providers;
 

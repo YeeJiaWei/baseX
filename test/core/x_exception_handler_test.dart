@@ -43,9 +43,11 @@ void main() {
     PlatformDispatcher.instance.onError = null;
     FlutterError.onError = null;
     XExceptionHandler.resetInstance();
+    XExceptionHandler.sentryEnabled = false;
   });
 
   tearDown(() {
+    XExceptionHandler.sentryEnabled = false;
     PlatformDispatcher.instance.onError = savedOnError;
     FlutterError.onError = savedFlutterOnError;
     ErrorWidget.builder = savedErrorWidgetBuilder;
@@ -129,6 +131,28 @@ void main() {
         XErrorContext.widget(details));
 
     expect(forwarded, [details]);
+  });
+
+  test('default report does not forward to the replaced hooks when Sentry is active',
+      () {
+    final forwardedUncaught = <Object>[];
+    final forwardedWidget = <FlutterErrorDetails>[];
+    PlatformDispatcher.instance.onError = (error, stackTrace) {
+      forwardedUncaught.add(error);
+      return true;
+    };
+    FlutterError.onError = forwardedWidget.add;
+    final handler = XExceptionHandler()..install();
+    XExceptionHandler.sentryEnabled = true;
+    final details = FlutterErrorDetails(exception: StateError('build'));
+
+    handler.report('boom', StackTrace.empty, const XErrorContext.uncaught());
+    handler.report('boom', StackTrace.empty, const XErrorContext.action());
+    handler.report(
+        details.exception, StackTrace.empty, XErrorContext.widget(details));
+
+    expect(forwardedUncaught, isEmpty);
+    expect(forwardedWidget, isEmpty);
   });
 
   test('install replaces ErrorWidget.builder and the default delegates to the previous one',
