@@ -1,6 +1,6 @@
 # Change Log
 
-## Unreleased
+## [v2.0.0](https://github.com/YeeJiaWei/baseX/releases/tag/2.0.0) - 2026-11-03
 - New
     - `appEnv`, `isProduction`, `isStaging`, `isDevelopment`: compile-time constants over `--dart-define=APP_ENV`. Branch `EnvironmentResolver.resolve` on them (`if (isProduction) return AppConstantProduction();`) and release builds tree-shake the flavors that were not built, so staging/dev hosts and keys are absent from the production binary. The comparison must read the const directly: any run-time call between the define and the `if` (e.g. a `switch` on `Flavor`) keeps every flavor class reachable. `flavorFromEnv()` still throws on an unknown value
     - `DeviceInfo` (`model`, `osVersion`, `id`, `os`) and `AppInfo` (`name`, `version`, `buildNumber`, `packageName`): plain value holders loaded once by `runXApp` before `runApp` (a failed load is logged and never blocks boot), read via `baseConstant.deviceInfo` / `baseConstant.appInfo`
