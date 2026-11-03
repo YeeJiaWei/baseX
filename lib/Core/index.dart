@@ -10,7 +10,15 @@ export 'base/x_base_widget.dart' show BaseXWidget;
 export 'app/base_constant.dart' show BaseConstant, Environment, Position;
 export 'app/device_info.dart' show DeviceInfo;
 export 'app/app_info.dart' show AppInfo;
-export 'app/flavor.dart' show Flavor, flavorFromEnv, parseFlavor;
+export 'app/flavor.dart'
+    show
+        Flavor,
+        appEnv,
+        flavorFromEnv,
+        isDevelopment,
+        isProduction,
+        isStaging,
+        parseFlavor;
 export 'app/x_declaration.dart'
     show
         GeneralErrorHandle,
@@ -30,7 +38,8 @@ export 'extension/x_extension.dart'
 export 'app/x_get_app.dart' show runXApp, baseConstant, defaultLangController;
 export 'app/x_display_lock.dart' show XDisplayLock;
 export 'app/x_display_scale.dart' show XDisplayScale;
-export 'app/x_service_provider.dart' show ServiceProvider, ProviderConfig, ApiXServiceProvider;
+export 'app/x_service_provider.dart'
+    show ServiceProvider, ProviderConfig, ApiXServiceProvider;
 export 'app/environment_constant.dart' show EnvironmentConstant;
 export 'app/environment_resolver.dart' show EnvironmentResolver;
 export 'navigation/x_navigation.dart'

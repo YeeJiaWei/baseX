@@ -5,15 +5,17 @@ import 'package:baseX/base_x.dart';
 /// logging are handled here. Hand the instance to [runXApp] via `env:`, which
 /// reads [active] to derive the title + base URLs.
 ///
+/// Branch on the [isProduction] / [isStaging] consts, not on [flavor]: they fold at
+/// compile time, so release builds tree-shake the flavors that were not built. A
+/// run-time parse between the define and the comparison turns that off.
+///
 /// ```dart
 /// class AppEnv extends EnvironmentResolver<EnvironmentAppConstant> {
 ///   @override
 ///   EnvironmentAppConstant resolve(Flavor flavor) {
-///     switch (flavor) {
-///       case Flavor.development: return AppConstantDevelopment();
-///       case Flavor.staging:     return AppConstantStaging();
-///       case Flavor.production:  return AppConstantProduction();
-///     }
+///     if (isProduction) return AppConstantProduction();
+///     if (isStaging) return AppConstantStaging();
+///     return AppConstantDevelopment();
 ///   }
 /// }
 /// ```
