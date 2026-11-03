@@ -84,4 +84,3 @@ current line). Each needs its own breaking-change review:
 | flutter_secure_storage | 10.3.1 | 11.2.0 |
 | map_launcher | 4.5.0 | 6.0.0 |
 | package_info_plus | 9.0.1 | 10.2.2 |
-| sign_in_with_apple | 7.0.1 | 8.2.0 |

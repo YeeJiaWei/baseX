@@ -3,7 +3,6 @@ library BaseX;
 export 'Core/index.dart';
 export 'model/index.dart'
     show
-        SocialData,
         XData,
         XLabel,
         XLanguage,

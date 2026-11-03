@@ -1,5 +1,9 @@
 # Change Log
 
+## Unreleased
+- Breaking
+    - Social login removed: the `SocialLogin` mixin (`loginFacebook` / `loginGoogle` / `loginApple`) and `SocialData` are gone, along with the `flutter_facebook_auth`, `sign_in_with_apple` and `google_sign_in` dependencies. Apps that need a provider add its plugin directly. This also drops the Facebook SDK's `FacebookClientToken` boot warning and the `sign_in_with_apple` Swift Package Manager warning
+
 ## [v1.1.0](https://github.com/YeeJiaWei/baseX/releases/tag/1.1.0) - 2026-10-30
 - Breaking
     - `XLogger.httpBlock` is replaced by `XLogger.httpLine`: each HTTP exchange logs one row, `🟢`/`🔴` + method, full URL and status (e.g. `🟢 GET https://host/api/v1/banners/current → 200`). Request and response bodies are no longer logged; inspect them in DevTools' Network tab
