@@ -1,6 +1,10 @@
 # Change Log
 
 ## Unreleased
+- New
+    - `XExceptionHandler`: a centralised, overridable app-wide error handler (Laravel-style). `runXApp(exceptionHandler:)` installs it over `PlatformDispatcher.onError`, `FlutterError.onError` and `ErrorWidget.builder`, so action (`BaseXController.run`), uncaught and widget errors all flow through `handle` -> `render` -> `shouldReport` -> `report`, described by the new `XErrorSource` and `XErrorContext`. Defaults: log only (no toast), `report` forwards to the replaced hooks, `buildErrorWidget` delegates to the previous builder; apps override any of them (e.g. report to a crash reporter directly). See `doc/ERROR_HANDLING.md`
+- Deprecated
+    - `runXApp(onFailed:)` is now optional and deprecated, as are `GeneralErrorHandle`, the global `onFailed`, `BaseXController.onFailed` / `onFailedDialog` and the constant's `onFailed` getter; use `XExceptionHandler` instead
 - Breaking
     - Social login removed: the `SocialLogin` mixin (`loginFacebook` / `loginGoogle` / `loginApple`) and `SocialData` are gone, along with the `flutter_facebook_auth`, `sign_in_with_apple` and `google_sign_in` dependencies. Apps that need a provider add its plugin directly. This also drops the Facebook SDK's `FacebookClientToken` boot warning and the `sign_in_with_apple` Swift Package Manager warning
     - Map launcher removed: `openXMaps`, `openXPlatformMaps` and `openXGoogleMaps` (`x_widget/x_open_map.dart`) are gone, along with the `map_launcher` and `flutter_svg` dependencies. They were never exported from `base_x.dart`; apps that need either package add it directly
