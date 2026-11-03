@@ -17,6 +17,9 @@ in the app itself, never here.
 - Auth token store (`XAuthStore`) and fresh-install handling
 - Push notifications and notification links
 - Navigation, storage, logger, base controller/widget, error types
+- Crash reporting through Sentry (`DefaultBaseConstant.errorTracking`): the
+  deliberate exception to the rule below (user decision 2026-11-03); the
+  native Sentry SDK is the cost every app pays
 - Small generic widgets with no extra native setup (`XCachedImage`, `XPicker`,
   `XSkeleton`, keyboard dismiss)
 - Lint rules (`x_lint`)
@@ -24,7 +27,7 @@ in the app itself, never here.
 **Goes in a separate package** (or the app)
 - Sign-in providers (Google, Apple, Facebook, …)
 - Map launchers, maps, location
-- Payments / in-app purchase, ads, analytics, crash reporting
+- Payments / in-app purchase, ads, analytics
 - Camera, media pickers, file sharing, anything else per-feature
 
 Test before adding something: would an app that never uses it still have to
