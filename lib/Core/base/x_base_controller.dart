@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:baseX/Core/app/x_get_app.dart';
+import 'package:baseX/Core/error/x_exception_handler.dart';
+import 'package:baseX/Core/error/x_error_context.dart';
 import 'package:get/get.dart';
 
 /// onFailedDialog => Function will run when super.onFailed return false, by default will show a dialog set in BaseConfig file.
@@ -73,6 +75,7 @@ abstract class BaseXController<T> extends FullLifeCycleController
     }
   }
 
+  @Deprecated('Use XExceptionHandler (runXApp exceptionHandler:) instead')
   void onFailedDialog(int code, String msg, dynamic data) {
     if (!(Get.isDialogOpen ?? false)) {
       baseConstant.defaulOnFailedDialog(code, msg);
@@ -80,6 +83,7 @@ abstract class BaseXController<T> extends FullLifeCycleController
   }
 
   @override
+  @Deprecated('Use XExceptionHandler (runXApp exceptionHandler:) instead')
   bool onFailed(int code, String msg, dynamic data, {Function? tryAgain}) {
     isLoading.value = false;
     // dismissKeyboard(Get.context);
@@ -88,6 +92,16 @@ abstract class BaseXController<T> extends FullLifeCycleController
       onFailedDialog(code, msg, data);
     }
     return true;
+  }
+
+  /// Runs a user action, handing anything it throws to XExceptionHandler.instance instead of letting it escape uncaught.
+  @protected
+  Future<void> run(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (error, stackTrace) {
+      XExceptionHandler.instance.handle(error, stackTrace, const XErrorContext.action());
+    }
   }
 
   @override

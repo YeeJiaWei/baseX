@@ -40,6 +40,7 @@ abstract class BaseXConstant {
   Future<bool> isHMS();
   Future<bool> isGMS();
 
+  @Deprecated('Use XExceptionHandler (runXApp exceptionHandler:) instead')
   GeneralErrorHandle get onFailed;
 }
 
@@ -123,6 +124,7 @@ class DefaultBaseConstant extends BaseXConstant {
   );
 
   @override
+  @Deprecated('Use XExceptionHandler (runXApp exceptionHandler:) instead')
   late GeneralErrorHandle onFailed;
 
   /// 0: HMS Core (APK) is available.

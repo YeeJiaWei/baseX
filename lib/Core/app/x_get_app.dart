@@ -15,7 +15,12 @@ XLangController? defaultLangController;
 /// * [liveBaseUrl] => Set live base url. Required if currentEnv is live
 /// * [staginBaseUrl] => Set staging base url. Required if currentEnv is staging
 /// * [allowOrientationList] => Set allowed Orientation List
-/// * [onFailed] => Set Global onFailed
+/// * [onFailed] => Deprecated, use [exceptionHandler]
+/// * [exceptionHandler] => Centralised error handler for action, uncaught
+///   and widget errors, installed over `PlatformDispatcher.onError`,
+///   `FlutterError.onError` and `ErrorWidget.builder`. Defaults to a log-only
+///   [XExceptionHandler]. See
+///   doc/ERROR_HANDLING.md
 /// * [getPages] => Register all page route with binding (if any)
 /// * [initialBinding] => Set Global Binding
 /// * [additionalFunction] => Add additional function before runEtcApp
@@ -50,7 +55,9 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   required List<GetPage<dynamic>> getPages,
   required BaseXWidget initialPage,
   required Bindings initialBinding,
-  required GeneralErrorHandle onFailed,
+  @Deprecated('Use XExceptionHandler (runXApp exceptionHandler:) instead')
+  GeneralErrorHandle? onFailed,
+  XExceptionHandler? exceptionHandler,
   // App title + base URLs are derived from the constant's environment
   // (constantConfig.env); pass these only to set or override them explicitly.
   String? title,
@@ -145,7 +152,10 @@ Future<void> runXApp<T extends XLabel, K extends XLanguage>({
   await XInstallMarker.instance.markSeen();
 
   //Set Gloabal onFailed
-  baseConstant.onFailed = onFailed;
+  baseConstant.onFailed =
+      onFailed ?? (context, code, msg, {tryAgain}) => true;
+
+  (exceptionHandler ?? XExceptionHandler()).install();
 
   //Additional Function required before run app
   if (additionalFunction != null) {
