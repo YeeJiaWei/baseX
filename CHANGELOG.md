@@ -3,6 +3,7 @@
 ## Unreleased
 - Breaking
     - Social login removed: the `SocialLogin` mixin (`loginFacebook` / `loginGoogle` / `loginApple`) and `SocialData` are gone, along with the `flutter_facebook_auth`, `sign_in_with_apple` and `google_sign_in` dependencies. Apps that need a provider add its plugin directly. This also drops the Facebook SDK's `FacebookClientToken` boot warning and the `sign_in_with_apple` Swift Package Manager warning
+    - Map launcher removed: `openXMaps`, `openXPlatformMaps` and `openXGoogleMaps` (`x_widget/x_open_map.dart`) are gone, along with the `map_launcher` and `flutter_svg` dependencies. They were never exported from `base_x.dart`; apps that need either package add it directly
 
 ## [v1.1.0](https://github.com/YeeJiaWei/baseX/releases/tag/1.1.0) - 2026-10-30
 - Breaking

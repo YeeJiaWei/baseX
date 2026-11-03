@@ -82,5 +82,4 @@ current line). Each needs its own breaking-change review:
 | device_info_plus | 12.4.0 | 13.3.0 |
 | flutter_local_notifications | 20.1.0 | 22.3.2 |
 | flutter_secure_storage | 10.3.1 | 11.2.0 |
-| map_launcher | 4.5.0 | 6.0.0 |
 | package_info_plus | 9.0.1 | 10.2.2 |

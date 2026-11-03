@@ -24,14 +24,12 @@ dependencies:
   firebase_messaging: '>=16.0.0 <16.4.0'
   flutter_local_notifications: ^20.0.0
   flutter_secure_storage: ^10.0.0
-  flutter_svg: ^2.0.16
   get: ^4.7.3
   gms_check: ^1.0.4
   huawei_hmsavailability: ^6.12.0+300
   # Huawei Push Kit (HMS) transport for devices without Google services
   huawei_push: ^6.15.0+300
   ios_utsname_ext: ^2.3.0
-  map_launcher: ^4.4.3
   package_info_plus: ^9.0.0
   path_provider: ^2.1.5
   shared_preferences: ^2.3.0
